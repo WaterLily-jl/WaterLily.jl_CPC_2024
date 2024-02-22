@@ -4,4 +4,4 @@
 *.out
 *~*
 tex/build/
-lite/
+tex/lite/
