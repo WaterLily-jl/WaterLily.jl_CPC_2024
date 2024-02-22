@@ -1,0 +1,7 @@
+*.log
+*.gz
+*.aux
+*.out
+*~*
+build/
+lite/

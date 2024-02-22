@@ -1,0 +1,265 @@
+%% This template can be used to write a paper for
+%% Computer Physics Communications using LaTeX.
+%% For authors who want to write a computer program description,
+%% an example Program Summary is included that only has to be
+%% completed and which will give the correct layout in the
+%% preprint and the journal.
+%% The `elsarticle' style is used and more information on this style
+%% can be found at 
+%% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
+%%
+%%
+\documentclass[preprint,12pt]{elsarticle}
+
+%% Use the option review to obtain double line spacing
+%% \documentclass[preprint,review,12pt]{elsarticle}
+
+%% Use the options 1p,twocolumn; 3p; 3p,twocolumn; 5p; or 5p,twocolumn
+%% for a journal layout:
+%% \documentclass[final,1p,times]{elsarticle}
+%% \documentclass[final,1p,times,twocolumn]{elsarticle}
+%% \documentclass[final,3p,times]{elsarticle}
+%% \documentclass[final,3p,times,twocolumn]{elsarticle}
+%% \documentclass[final,5p,times]{elsarticle}
+%% \documentclass[final,5p,times,twocolumn]{elsarticle}
+
+%% if you use PostScript figures in your article
+%% use the graphics package for simple commands
+%% \usepackage{graphics}
+%% or use the graphicx package for more complicated commands
+%% \usepackage{graphicx}
+%% or use the epsfig package if you prefer to use the old commands
+%% \usepackage{epsfig}
+
+%% The amssymb package provides various useful mathematical symbols
+\usepackage{amssymb}
+%% The amsthm package provides extended theorem environments
+%% \usepackage{amsthm}
+
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers after \end{frontmatter}.
+%% \usepackage{lineno}
+
+%% natbib.sty is loaded by default. However, natbib options can be
+%% provided with \biboptions{...} command. Following options are
+%% valid:
+
+%%   round  -  round parentheses are used (default)
+%%   square -  square brackets are used   [option]
+%%   curly  -  curly braces are used      {option}
+%%   angle  -  angle brackets are used    <option>
+%%   semicolon  -  multiple citations separated by semi-colon
+%%   colon  - same as semicolon, an earlier confusion
+%%   comma  -  separated by comma
+%%   numbers-  selects numerical citations
+%%   super  -  numerical citations as superscripts
+%%   sort   -  sorts multiple citations according to order in ref. list
+%%   sort&compress   -  like sort, but also compresses numerical citations
+%%   compress - compresses without sorting
+%%
+%% \biboptions{comma,round}
+
+% \biboptions{}
+
+%% This list environment is used for the references in the
+%% Program Summary
+%%
+\newcounter{bla}
+\newenvironment{refnummer}{%
+\list{[\arabic{bla}]}%
+{\usecounter{bla}%
+ \setlength{\itemindent}{0pt}%
+ \setlength{\topsep}{0pt}%
+ \setlength{\itemsep}{0pt}%
+ \setlength{\labelsep}{2pt}%
+ \setlength{\listparindent}{0pt}%
+ \settowidth{\labelwidth}{[9]}%
+ \setlength{\leftmargin}{\labelwidth}%
+ \addtolength{\leftmargin}{\labelsep}%
+ \setlength{\rightmargin}{0pt}}}
+ {\endlist}
+
+\journal{Computer Physics Communications}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% Title, authors and addresses
+
+%% use the tnoteref command within \title for footnotes;
+%% use the tnotetext command for the associated footnote;
+%% use the fnref command within \author or \address for footnotes;
+%% use the fntext command for the associated footnote;
+%% use the corref command within \author for corresponding author footnotes;
+%% use the cortext command for the associated footnote;
+%% use the ead command for the email address,
+%% and the form \ead[url] for the home page:
+%%
+%% \title{Title\tnoteref{label1}}
+%% \tnotetext[label1]{}
+%% \author{Name\corref{cor1}\fnref{label2}}
+%% \ead{email address}
+%% \ead[url]{home page}
+%% \fntext[label2]{}
+%% \cortext[cor1]{}
+%% \address{Address\fnref{label3}}
+%% \fntext[label3]{}
+
+% \title{WaterLily.jl: A differentiable fluid simulator in Julia with fast heterogeneous execution}
+\title{WaterLily.jl: Simulating fluid flow and dynamic geometries with a backend-agnostic Julia solver}
+
+%% use optional labels to link authors explicitly to addresses:
+%% \author[label1,label2]{<author name>}
+%% \address[label1]{<address>}
+%% \address[label2]{<address>}
+
+\author[a]{First Author\corref{author}}
+\author[a,b]{Second Author}
+\author[b]{Third Author}
+
+\cortext[author] {Corresponding author.\\\textit{E-mail address:} firstAuthor@somewhere.edu}
+\address[a]{First Address}
+\address[b]{Second Address}
+
+% A submitted program is expected to satisfy the following criteria: it must be of benefit to other physicists, or be an exemplar of good programming practice, or illustrate new or novel programming techniques which are of importance to computational physics community; it should be implemented in a language and executable on hardware that is widely available and well documented; it should meet accepted standards for scientific programming; it should be adequately documented and, where appropriate, supplied with a separate User Manual, which together with the manuscript should make clear the structure, functionality, installation, and operation of the program.
+
+% Your manuscript and figure sources should be submitted through Editorial Manager (EM) by using the online submission tool at \\
+% https://www.editorialmanager.com/comphy/.
+
+% In addition to the manuscript you must supply: the program source code; a README file giving the names and a brief description of the files/directory structure that make up the package and clear instructions on the installation and execution of the program; sample input and output data for at least one comprehensive test run; and, where appropriate, a user manual.
+
+% A compressed archive program file or files, containing these items, should be uploaded at the "Attach Files" stage of the EM submission.
+
+% For files larger than 1Gb, if difficulties are encountered during upload the author should contact the Technical Editor at cpc.mendeley@gmail.com.
+
+\begin{abstract}
+Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages. WaterLily.jl is an open-source incompressible viscous flow solver written in the Julia language. The small code base is multi-dimensional, multi-platform and backend-agnostic (serial CPU, multi-threaded, \& GPU execution). The computational time per time step scales linearly with the number of degrees of freedom on CPUs, and we see up to a 182x speed-up using CUDA kernels. This leads to comparable performance with Fortran solvers on many research-scale problems opening up exciting possible future applications on the cutting edge of machine-learning research.
+% The simulator is differentiable and uses automatic-differentiation internally to immerse solid geometries and optimize the pressure solver.
+\end{abstract}
+
+\begin{keyword}
+heterogeneous-programming; Cartesian-grid methods; Julia; GPU
+\end{keyword}
+
+\end{frontmatter}
+
+%%
+%% Start line numbering here if you want
+%%
+% \linenumbers
+
+% All CPiP articles must contain the following
+% PROGRAM SUMMARY.
+
+% {\bf PROGRAM SUMMARY/NEW VERSION PROGRAM SUMMARY}
+  %Delete as appropriate.
+{\bf PROGRAM SUMMARY}
+\\
+\\
+\begin{small}
+\noindent
+{\em Program Title:} WaterLily.jl \\ 
+{\em CPC Library link to program files:} (to be added by Technical Editor) \\
+{\em Developer's repository link:} https://github.com/weymouth/WaterLily.jl \\
+{\em Code Ocean capsule:} (to be added by Technical Editor)\\
+{\em Licensing provisions(please choose one):} MIT \\
+{\em Programming language:} Julia \\
+{\em Supplementary material:} \\
+  % Fill in if necessary, otherwise leave out.
+% {\em Journal reference of previous version:}*                  \\
+  %Only required for a New Version summary, otherwise leave out.
+% {\em Does the new version supersede the previous version?:}*   \\
+  %Only required for a New Version summary, otherwise leave out.
+% {\em Reasons for the new version:*}\\
+  %Only required for a New Version summary, otherwise leave out.
+% {\em Summary of revisions:}*\\
+  %Only required for a New Version summary, otherwise leave out.
+{\em Nature of problem(approx. 50-250 words):}\\
+  %Describe the nature of the problem here. \\
+{\em Solution method(approx. 50-250 words):}\\
+  %Describe the method solution here.
+{\em Additional comments including restrictions and unusual features (approx. 50-250 words):}\\
+  %Provide any additional comments here.
+
+\begin{thebibliography}{0}
+\bibitem{1}Program summary reference 1         % This list should only contain those items referenced in the                 
+\bibitem{2}Program summary reference 2         % Program Summary section.   
+\bibitem{3}Program summary reference 3         % Type references in text as [1], [2], etc.
+                               % This list is different from the bibliography at the end of 
+                               % the Long Write-Up.
+\end{thebibliography}
+% * Items marked with an asterisk are only required for new versions
+% of programs previously published in the CPC Program Library.\\
+\end{small}
+
+
+%% main text
+\section{Introduction}
+
+Similar to the arXiv paper, and mention some other codes here too. Some references published at CPC that we could cite and follow to organise this paper:
+
+\begin{itemize}
+  \item \cite{Romero2022}
+  \item \cite{Bernardini2021,Bernardini2023}
+  \item \cite{Gasparino2023}
+\end{itemize}
+
+\section{Numerical methods}
+\begin{itemize}
+  \item FV, BDIM, GMG
+\end{itemize}
+
+\section{Software design}
+\begin{itemize}
+  \item N-dimensional solver
+  \item KernelAbstractions.jl
+  \item Auto bodies
+\end{itemize}
+
+\section{Benchmark and validation}
+\begin{itemize}
+  \item Cases: TGV (no body) [benchmark and validation], sphere/cylinder [benchmark and validation], moving body (?) [benchmark]
+  \item Architectures: NVIDIA H100 (Marenostrum 5 at BSC), AMD Radeon Instinct MI50 (CTE-AMD cluster at BSC), serial execution (?)
+\end{itemize}
+
+Try different grid sizes, testing the GPUs at different capacity.
+
+Profiling with Nsight (see \cite{Gasparino2023}) for kernel time, CPU-GPU communication.
+
+\section{Flashy test cases}
+For example...
+\begin{itemize}
+  \item 2D pitching/heaving airfoils (parametric bodies)
+  \item Jellyfish (expanding/contracting bodies)
+  \item RL control (Arthur case) to show integration of CFD and ML?
+\end{itemize}
+
+\section{Conclusions}
+
+
+%% The Appendices part is started with the command \appendix;
+%% appendix sections are then done as normal sections
+%% \appendix
+
+%% \section{}
+%% \label{}
+
+%% References
+%%
+%% Following citation commands can be used in the body text:
+%% Usage of \cite is as follows:
+%%   \cite{key}         ==>>  [#]
+%%   \cite[chap. 2]{key} ==>> [#, chap. 2]
+%%
+
+%% References with bibTeX database:
+
+\bibliographystyle{elsarticle-num}
+\bibliography{main.bib}
+
+\end{document}
+
+%%
+%% End of file 
