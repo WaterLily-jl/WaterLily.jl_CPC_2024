@@ -3,5 +3,5 @@
 *.aux
 *.out
 *~*
-build/
+tex/build/
 lite/
