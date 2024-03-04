@@ -5,7 +5,7 @@
 %% completed and which will give the correct layout in the
 %% preprint and the journal.
 %% The `elsarticle' style is used and more information on this style
-%% can be found at 
+%% can be found at
 %% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
 %%
 %%
@@ -107,8 +107,7 @@
 %% \address{Address\fnref{label3}}
 %% \fntext[label3]{}
 
-% \title{WaterLily.jl: A differentiable fluid simulator in Julia with fast heterogeneous execution}
-\title{WaterLily.jl: Simulating fluid flow and dynamic geometries with a backend-agnostic Julia solver}
+\title{WaterLily.jl: A Julia solver to simulate fluid flow and dynamic geometries with heterogeneous execution}
 
 %% use optional labels to link authors explicitly to addresses:
 %% \author[label1,label2]{<author name>}
@@ -135,12 +134,15 @@
 % For files larger than 1Gb, if difficulties are encountered during upload the author should contact the Technical Editor at cpc.mendeley@gmail.com.
 
 \begin{abstract}
-Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages. WaterLily.jl is an open-source incompressible viscous flow solver written in the Julia language. The small code base is multi-dimensional, multi-platform and backend-agnostic (serial CPU, multi-threaded, \& GPU execution). The computational time per time step scales linearly with the number of degrees of freedom on CPUs, and we see up to a 182x speed-up using CUDA kernels. This leads to comparable performance with Fortran solvers on many research-scale problems opening up exciting possible future applications on the cutting edge of machine-learning research.
+Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages.
+WaterLily.jl is an open-source incompressible viscous flow solver written in the Julia language.
+The small code base is multidimensional, multi-platform and backend-agnostic (serial CPU, multithreaded, \& GPU execution).
+The computational time per time step scales linearly with the number of degrees of freedom on CPUs, and we see up to a 182x speed-up using CUDA kernels. This leads to comparable performance with Fortran solvers on many research-scale problems opening up exciting possible future applications on the cutting edge of machine-learning research.
 % The simulator is differentiable and uses automatic-differentiation internally to immerse solid geometries and optimize the pressure solver.
 \end{abstract}
 
 \begin{keyword}
-heterogeneous-programming; Cartesian-grid methods; Julia; GPU
+heterogeneous programming; Cartesian-grid methods; Julia; GPU
 \end{keyword}
 
 \end{frontmatter}
@@ -160,7 +162,7 @@ heterogeneous-programming; Cartesian-grid methods; Julia; GPU
 \\
 \begin{small}
 \noindent
-{\em Program Title:} WaterLily.jl \\ 
+{\em Program Title:} WaterLily.jl \\
 {\em CPC Library link to program files:} (to be added by Technical Editor) \\
 {\em Developer's repository link:} https://github.com/weymouth/WaterLily.jl \\
 {\em Code Ocean capsule:} (to be added by Technical Editor)\\
@@ -184,10 +186,10 @@ heterogeneous-programming; Cartesian-grid methods; Julia; GPU
   %Provide any additional comments here.
 
 \begin{thebibliography}{0}
-\bibitem{1}Program summary reference 1         % This list should only contain those items referenced in the                 
-\bibitem{2}Program summary reference 2         % Program Summary section.   
+\bibitem{1}Program summary reference 1         % This list should only contain those items referenced in the
+\bibitem{2}Program summary reference 2         % Program Summary section.
 \bibitem{3}Program summary reference 3         % Type references in text as [1], [2], etc.
-                               % This list is different from the bibliography at the end of 
+                               % This list is different from the bibliography at the end of
                                % the Long Write-Up.
 \end{thebibliography}
 % * Items marked with an asterisk are only required for new versions
@@ -198,7 +200,8 @@ heterogeneous-programming; Cartesian-grid methods; Julia; GPU
 %% main text
 \section{Introduction}
 
-Similar to the arXiv paper, and mention some other codes here too. Some references published at CPC that we could cite and follow to organise this paper:
+Similar to the arXiv paper, and mention some other codes here too.
+Some references published at CPC that we could cite and follow to organise this paper:
 
 \begin{itemize}
   \item \cite{Romero2022}
@@ -220,7 +223,7 @@ Similar to the arXiv paper, and mention some other codes here too. Some referenc
 
 \section{Benchmark and validation}
 \begin{itemize}
-  \item Cases: TGV (no body) [benchmark and validation], sphere/cylinder [benchmark and validation], moving body (?) [benchmark]
+  \item Cases: TGV (no body), fixed sphere, transverse motion cylinder
   \item Architectures: NVIDIA H100 (Marenostrum 5 at BSC), AMD Radeon Instinct MI50 (CTE-AMD cluster at BSC), serial execution (?)
 \end{itemize}
 
@@ -233,7 +236,8 @@ For example...
 \begin{itemize}
   \item 2D pitching/heaving airfoils (parametric bodies)
   \item Jellyfish (expanding/contracting bodies)
-  \item RL control (Arthur case) to show integration of CFD and ML?
+  \item Adaptive sampling (CFD+"ML"): what parametric space do we sample? Maybe shark test case finding a surface response for thrust or vorticity field.
+  % \item RL control (Arthur case) to show integration of CFD and ML?
 \end{itemize}
 
 \section{Conclusions}
@@ -262,4 +266,4 @@ For example...
 \end{document}
 
 %%
-%% End of file 
+%% End of file
