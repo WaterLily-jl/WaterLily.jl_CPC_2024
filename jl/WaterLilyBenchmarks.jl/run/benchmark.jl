@@ -1,7 +1,8 @@
 # This script should be run using run_benchmarks.sh, eq:
 # $ sh $WATERLILY_DIR/benchmark/benchmark.sh -b "Array CuArray" -t "32 64" -c "tgv" -p "7,8" -s "100" -ft "Float32"
 
-using WaterLilyBenchmarks
+include("../src/WaterLilyBenchmarks.jl")
+using .WaterLilyBenchmarks
 
 # using CUDA: CuArray, allowscalar
 # allowscalar(false)
