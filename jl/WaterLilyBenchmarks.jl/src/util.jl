@@ -1,3 +1,7 @@
+using KernelAbstractions: synchronize, get_backend
+using CUDA: CuArray
+
+
 function parse_cla(args; cases=["tgv"], log2p=[(6,7)], max_steps=[100], ftype=[Float32], backend=Array)
     iarg(arg) = occursin.(arg, args) |> findfirst
     arg_value(arg) = split(args[iarg(arg)], "=")[end]

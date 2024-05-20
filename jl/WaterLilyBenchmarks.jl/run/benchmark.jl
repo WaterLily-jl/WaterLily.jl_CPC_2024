@@ -3,11 +3,10 @@
 
 include("../src/WaterLilyBenchmarks.jl")
 using .WaterLilyBenchmarks
+using CUDA: CuArray, allowscalar
+allowscalar(false)
 
-# using CUDA: CuArray, allowscalar
-# allowscalar(false)
-
-backend_str = Dict(Array => "CPUx$(Threads.nthreads())")#, CuArray => "GPU")
+backend_str = Dict(Array => "CPUx$(Threads.nthreads())", CuArray => "GPU")
 cases, log2p, max_steps, ftype, backend = parse_cla(ARGS;
     cases=["tgv", "jelly"], log2p=[(6,7), (5,6)], max_steps=[100, 100], ftype=[Float32, Float32], backend=Array
 )
