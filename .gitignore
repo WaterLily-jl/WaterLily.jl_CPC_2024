@@ -2,6 +2,7 @@
 *.gz
 *.aux
 *.out
+*.err
 *~*
 tex/build/
 tex/lite/
