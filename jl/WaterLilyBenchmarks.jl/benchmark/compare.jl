@@ -77,7 +77,7 @@ for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
     # Get data for PrettyTables
     header = ["Backend", "WaterLily", "Julia", "Precision", "Allocations", "GC [%]", "Time [s]", "Speed-up"]
     data, base_speedup = Matrix{Any}(undef, length(benchmarks), length(header)), 1.0
-    global data_plot = Array{Float64}(undef, length(log2p_str), length(backends_str), 2) # times and speedups
+    data_plot = Array{Float64}(undef, length(log2p_str), length(backends_str), 2) # times and speedups
     printstyled("Benchmark environment: $case $f_test (max_steps=$(benchmarks[1].tags[4]))\n", bold=true)
     for (k,n) in enumerate(log2p_str)
         printstyled("▶ log2p = $n\n", bold=true)
@@ -121,6 +121,6 @@ for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
     end
     push!(plots, p)
 end
-plot(plots..., layout = (1, length(plots)))#, fillrange = 0, par=(:MAP_LABEL_OFFSET, "2p"))
+plot(plots..., layout=(1, length(plots)))#, fillrange = 0, par=(:MAP_LABEL_OFFSET, "2p"))
 savefig(string(@__DIR__) * "../../../../tex/img/benchmarks.pdf")
 

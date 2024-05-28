@@ -7,15 +7,15 @@ using StaticArrays
 include("util.jl")
 
 # Define simulation benchmarks
-function tgv(p, backend; Re=1e5, T=Float32)
-    L = 2^p; U = 1; ν = U*L/Re
-    function uλ(i,vx)
-        x,y,z = @. (vx-1.5)*π/L                # scaled coordinates
+function tgv(p, backend; Re=1600, T=Float32)
+    L = 2^p; U = 1; κ=π/L; ν = 1/(κ*Re)
+    function uλ(i,xyz)
+        x,y,z = @. xyz/L*π                # scaled coordinates
         i==1 && return -U*sin(x)*cos(y)*cos(z) # u_x
         i==2 && return  U*cos(x)*sin(y)*cos(z) # u_y
         return 0.                              # u_z
     end
-    Simulation((L, L, L), (0, 0, 0), L; U=U, uλ=uλ, ν=ν, T=T, mem=backend)
+    Simulation((L, L, L), (0, 0, 0), 1/κ; U=U, uλ=uλ, ν=ν, T=T, mem=backend)
 end
 
 function sphere(p, backend; Re=1e3, U=1, T=Float32)
