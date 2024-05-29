@@ -18,12 +18,12 @@ function tgv(p, backend; Re=1600, T=Float32)
     Simulation((L, L, L), (0, 0, 0), 1/κ; U=U, uλ=uλ, ν=ν, T=T, mem=backend)
 end
 
-function sphere(p, backend; Re=1e3, U=1, T=Float32)
-    R = 2^p; ν = U*R/Re
-    L = (16R, 6R, 6R)
-    center = SA[1.5R, 3R, 3R]
-    body = AutoBody((x,t)-> √sum(abs2, x .- center) - R)
-    Simulation(L, (U, 0, 0), R; U=U, ν=ν, body=body, T=T, mem=backend, perdir=(2, 3), exitBC=true)
+function sphere(p, backend; Re=3700, U=1, T=Float32)
+    D = 2^p; ν = U*D/Re
+    L = (16D, 6D, 6D)
+    center = SA[1.5D, 3D, 3D]
+    body = AutoBody((x,t)-> √sum(abs2, x .- center) - D/2)
+    Simulation(L, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, perdir=(2, 3), exitBC=true)
 end
 
 function cylinder(p, backend; Re=1e3, U=1, T=Float32)
