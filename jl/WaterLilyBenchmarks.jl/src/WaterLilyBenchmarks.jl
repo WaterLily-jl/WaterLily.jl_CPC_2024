@@ -8,7 +8,7 @@ include("util.jl")
 
 # Define simulation benchmarks
 function tgv(p, backend; Re=1600, T=Float32)
-    L = 2^p; U = 1; κ=π/L; ν = 1/(κ*Re)
+    L = 2^p; U = 1; κ=π/L; ν = 1/(κ*Re) # L = 3*2^p
     function uλ(i,xyz)
         x,y,z = @. xyz/L*π                # scaled coordinates
         i==1 && return -U*sin(x)*cos(y)*cos(z) # u_x
@@ -65,7 +65,7 @@ function jelly(p, backend; Re=5e2, U=1, T=Float32)
 end
 
 # Generate benchmarks
-function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr)
+function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr; datadir="./")
     for (case, p, s, ft) in zip(cases, log2p, max_steps, ftype)
         println("Benchmarking: $(case)")
         suite = BenchmarkGroup()
@@ -73,7 +73,7 @@ function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr)
         add_to_suite!(suite, getf(case); p=p, s=s, ft=ft, backend=backend, bstr=bstr) # create benchmark
         results[bstr] = run(suite[bstr], samples=1, evals=1, seconds=1e6, verbose=true) # run!
         fname = "$(case)_$(p...)_$(s)_$(ft)_$(bstr)_$(git_hash)_$VERSION.json"
-        BenchmarkTools.save(fname, results)
+        BenchmarkTools.save(joinpath(datadir,fname), results)
     end
 end
 

@@ -12,4 +12,6 @@ cases, log2p, max_steps, ftype, backend = parse_cla(ARGS;
 )
 
 # Generate benchmark data
-run_benchmarks(cases, log2p, max_steps, ftype, backend, backend_str[backend])
+datadir = "./benchmarks/MN5"
+mkpath(datadir)
+run_benchmarks(cases, log2p, max_steps, ftype, backend, backend_str[backend]; datadir)

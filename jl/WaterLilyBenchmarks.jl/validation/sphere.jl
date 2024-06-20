@@ -1,9 +1,25 @@
+using Revise
 using StaticArrays
 using CUDA
 using WaterLily
 using ReadVTK, WriteVTK
-using JLD2
+using FFTW, Interpolations, JLD2, Plots, LaTeXStrings, Printf, DSP
 import Base: time
+
+Plots.default(
+    fontfamily = "Computer Modern",
+    linewidth = 1,
+    framestyle = :box,
+    grid = false,
+    left_margin = Plots.Measures.Length(:mm, 5),
+    right_margin = Plots.Measures.Length(:mm, 5),
+    bottom_margin = Plots.Measures.Length(:mm, 5),
+    top_margin = Plots.Measures.Length(:mm, 5),
+    titlefontsize = 15,
+    legendfontsize = 14,
+    tickfontsize = 14,
+    labelfontsize = 14,
+)
 
 function sphere(p, backend; Re=3700, T=Float32)
     D = 2^p; U = 1; ν = U*D/Re
@@ -34,8 +50,8 @@ function reset!(meanflow::MeanFlow; t_init=0.0)
     deleteat!(meanflow.t, collect(1:size(meanflow.t)[1]))
     push!(meanflow.t, t_init)
 end
-function load!(meanflow::MeanFlow, fname::String)
-    obj = jldopen(fname)
+function load!(meanflow::MeanFlow, fname::String; dir="data/")
+    obj = jldopen(dir*fname)
     f = typeof(meanflow.U).name.wrapper
     meanflow.P .= obj["P"] |> f
     meanflow.U .= obj["U"] |> f
@@ -74,36 +90,26 @@ function copy!(a::Flow, b::MeanFlow)
     a.u .= b.U
     a.p .= b.P
 end
+function read_forces(fname::String; dir="data/")
+    obj = jldopen(dir*fname)
+    return obj["force"], obj["u_probe"], obj["time"]
+end
 
-backend = CuArray
-T = Float32
-Re = 3700
-ps = [4,5,6]
-
-stats = true
-stats_turb = false
-time_max = 300.0 # in CTU
-stats_init = 100.0 # in CTU
-stats_interval = 0.1 # in CTU
-dump_interval = 5000 # in CTU
-datadir = "data/sphere/"
-fname_output = "meanflow"
-verbose = true
-
-function run(p, backend; Re=3700, T=Float32)
+function run_sim(p, backend; Re=3700, T=Float32)
     sim = sphere(p, backend; Re=Re, T=T)
-    sim_out = sphere(p, backend; Re=Re, T=T)
     meanflow = MeanFlow(sim.flow)
-    force,time = Vector{T}[],T[] # force coefficients (and time)
+    force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
+    D = 2^p
     while sim_time(sim) < time_max
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
         push!(force, WaterLily.∮nds(sim.flow.p,sim.flow.f,sim.body,sim_time(sim))/(0.5*sim.U^2*sim.L^2))
+        push!(u_probe, view(sim.flow.u,7D,5D,4D,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
-        verbose && println("Cd=",round(force[end][1],digits=4))
+        verbose && println("Cd = ",round(force[end][1],digits=4))
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
-            verbose && println("Writing forces")
-            jldsave(datadir*"force_p$p.jld2"; force=force, time=time)
+            verbose && println("Writing force and probe values")
+            jldsave(datadir*"force_p$p.jld2"; force=force, time=time, u_probe=u_probe)
         end
         # Mean flow stats
         if stats && sim_time(sim) > stats_init
@@ -112,14 +118,14 @@ function run(p, backend; Re=3700, T=Float32)
             update!(meanflow, sim.flow; stats_turb=stats_turb)
             if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
                 verbose && println("Writing stats")
-                write!(fname_output*"_p$p", meanflow; dir=datadir, vtk=true, sim=sim_out)
+                write!(fname_output*"_p$p", meanflow; dir=datadir)
             end
         end
     end
-    verbose && println("Writing forces")
-    jldsave(datadir*"force_p$p.jld2"; force=force, time=time)
+    verbose && println("Writing force and probe values")
+    jldsave(datadir*"force_p$p.jld2"; force=force, u_probe=u_probe, time=time)
     verbose && println("Writing stats")
-    write!(fname_output*"_p$p", meanflow; dir=datadir, vtk=true, sim=sim_out)
+    write!(fname_output*"_p$p", meanflow; dir=datadir)
     wr = vtkWriter("flow_p$p"; dir=datadir)
     WaterLily.write!(wr, sim)
     close(wr)
@@ -127,7 +133,61 @@ function run(p, backend; Re=3700, T=Float32)
     return sim, meanflow, force
 end
 
-mkpath(datadir)
-for p in ps
-    sim, meanflow, force = run(p, backend; Re=Re, T=T)
+backend = CuArray
+T = Float32
+Re = 3700
+ps = [4,5,6]
+stats = true
+stats_turb = false
+time_max = 400.0 # in CTU
+stats_init = 100.0 # in CTU
+stats_interval = 0.1 # in CTU
+dump_interval = 5000 # in CTU
+datadir = "data/sphere2/"
+fname_output = "meanflow"
+verbose = true
+run = 1 # 0: postproc, 1: run
+_plot = true
+
+function main()
+    run == 1 && mkpath(datadir)
+    for p in ps
+        println("Running p = $p")
+        if run == 1
+            _, meanflow, force = run_sim(p, backend; Re=Re, T=T)
+        end
+        # postproc forces
+        t_init, sampling_rate = stats_init, 0.1
+        force, u_probe, t = read_forces("force_p$p.jld2"; dir=datadir)
+        force = mapreduce(permutedims, vcat, force)
+        fx, fy, fz = force[:,1], force[:,2], force[:,3]
+        idx = t .> t_init
+        fx, fy, fz, u, t = fx[idx], fy[idx], fz[idx], u_probe[idx], t[idx]
+        CD_mean = sum(fx[2:end].*diff(t))/sum(diff(t))
+        println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
+        println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
+        if _plot
+            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", 14*8*8*2^(p*3)/1e6)*" M")
+            plot!(CD_plot, xlabel=L"$tU/D$", ylabel=L"$-C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
+            savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_CD.pdf")
+        end
+
+        # postproc St
+        t_interp = t[1]:sampling_rate:t[end] |> collect
+        u_interp = LinearInterpolation(t, u).(t_interp)
+        F = 1/(t_interp[end]-t_interp[1])*fft(u_interp) |> fftshift .|> x->abs(x)^2
+        fk = fftfreq(length(t_interp), 1/sampling_rate) |> fftshift
+        fk_pos = fk[fk .> 0]
+        F = F[fk .> 0]
+        St = fk_pos[argmax(F)]
+        println("▷ St = "*@sprintf("%.4f", St))
+        if _plot
+            fft_plot = plot(fk_pos, F, xaxis=:log, yaxis=:log, linewidth=2)
+            plot!(fft_plot, xlabel=L"$fD/U$", ylabel=L"$PS(u)$", framestyle=:box, grid=true,
+                size=(600, 600), xlims=(fk_pos[1], fk_pos[end]))
+            savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_St.pdf")
+        end
+    end
 end
+
+main()
