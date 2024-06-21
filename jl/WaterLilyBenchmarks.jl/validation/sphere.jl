@@ -103,7 +103,7 @@ function run_sim(p, backend; Re=3700, T=Float32)
     while sim_time(sim) < time_max
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
-        push!(force, WaterLily.∮nds(sim.flow.p,sim.flow.f,sim.body,sim_time(sim))/(0.5*sim.U^2*sim.L^2))
+        push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
         push!(u_probe, view(sim.flow.u,7D,5D,4D,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
         verbose && println("Cd = ",round(force[end][1],digits=4))
