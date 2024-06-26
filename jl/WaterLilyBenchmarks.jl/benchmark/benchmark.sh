@@ -1,7 +1,7 @@
 #!/bin/bash
 
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-export WATERLILY_ROOT=$(dirname "${THIS_DIR}")
+# export WATERLILY_DIR=$(dirname "${THIS_DIR}")
 
 # Utils
 join_array_comma () {
@@ -37,7 +37,7 @@ julia_version () {
 update_environment () {
     if check_if_juliaup; then
         echo "Updating environment to Julia $version"
-        julia +${version} --project=$THIS_DIR -e "using Pkg; Pkg.develop(PackageSpec(path=get(ENV, \"WATERLILY_ROOT\", \"\"))); Pkg.update();"
+        julia +${version} --project=$THIS_DIR -e "using Pkg; Pkg.develop(PackageSpec(path=get(ENV, \"WATERLILY_DIR\", \"\"))); Pkg.update();"
     fi
 }
 

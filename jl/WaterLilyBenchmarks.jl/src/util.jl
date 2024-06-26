@@ -33,11 +33,11 @@ function add_to_suite!(suite, sim_function; p=(3,4,5), s=100, ft=Float32, backen
         sim_step!(sim, typemax(ft); max_steps=1, verbose=false, remeasure=false) # warm up
         suite[bstr][repr(n)] = BenchmarkGroup([repr(n)])
         KA_backend = get_backend(sim.flow.p)
-        @add_benchmark sim_step!($sim, $typemax($ft); max_steps=$s, verbose=true, remeasure=false) $KA_backend suite[bstr][repr(n)] "sim_step!"
+        @add_benchmark sim_step!($sim, $typemax($ft); max_steps=$s, verbose=false, remeasure=false) $KA_backend suite[bstr][repr(n)] "sim_step!"
     end
 end
 
-waterlily_dir = get(ENV, "WATERLILY_ROOT", "")
+waterlily_dir = get(ENV, "WATERLILY_DIR", "")
 git_hash = read(`git -C $waterlily_dir rev-parse --short HEAD`, String) |> x -> strip(x, '\n')
 getf(str) = eval(Symbol(str))
 

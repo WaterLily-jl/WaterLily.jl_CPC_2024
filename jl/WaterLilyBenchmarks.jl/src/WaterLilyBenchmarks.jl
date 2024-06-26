@@ -77,8 +77,8 @@ function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr; datadir="
     end
 end
 
-export tgv, spehre, cylinder, donut, jelly
+export tgv, sphere, cylinder, donut, jelly
 # export flow_ωmag!, visualize!
-export run_benchmarks, parse_cla
+export run_benchmarks, parse_cla, git_hash
 
 end # module WaterLilyBenchamarks
