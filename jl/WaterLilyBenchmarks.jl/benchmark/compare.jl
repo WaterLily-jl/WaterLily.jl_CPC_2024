@@ -14,7 +14,7 @@ Plots.default(
     # margin = (Plots.Measures.Length(:mm, 10)),
     left_margin = Plots.Measures.Length(:mm, 20),
     right_margin = Plots.Measures.Length(:mm, 5),
-    bottom_margin = Plots.Measures.Length(:mm, 10),
+    bottom_margin = Plots.Measures.Length(:mm, 15),
     top_margin = Plots.Measures.Length(:mm, 5),
     titlefontsize = 15,
     legendfontsize = 14,
@@ -48,7 +48,14 @@ function annotated_groupedbar(xx, yy, group; series_annotations="", bar_width=1.
     gp
 end
 
-titles = Dict("tgv"=>"TGV", "sphere"=>"Sphere", "cylinder"=>"Cylinder", "donut"=>"Donut")
+tests_dets = Dict(
+    "tgv" => Dict("size" => (1, 1, 1), "title" => "TGV"),
+    "sphere" => Dict("size" => (16, 6, 6), "title" => "Sphere"),
+    "cylinder" => Dict("size" => (12, 6, 2), "title" => "Moving cylinder"),
+    "donut" => Dict("size" => (2, 1, 1), "title" => "Donut"),
+)
+tests_ordered = String["tgv", "sphere", "cylinder"]
+fname = "../../../../tex/img/benchmarks.pdf"
 
 # Load benchmarks
 benchmarks_all = [BenchmarkTools.load(fname)[1] for fname in ARGS if !occursin("--sort", fname)]
@@ -65,9 +72,8 @@ end
 # Table and plots
 # plots = Dict(Pair(c, Plots.Plot()) for c in cases_str)
 plots = Plots.Plot[]
-tests_domain_size = Dict("tgv" => (1, 1, 1), "sphere" => (16, 6, 6), "cylinder" => (12, 6, 2), "donut" => (2, 1, 1))
-tests_size = Dict(c => 0 for c in cases_str)
-for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
+for (kk, case) in enumerate(tests_ordered)
+    benchmarks = benchmarks_all_dict[case]
     # Get backends string vector and assert same case sizes for the different backends
     backends_str = [String.(k)[1] for k in keys.(benchmarks)]
     log2p_str = [String.(keys(benchmarks[i][backend_str])) for (i, backend_str) in enumerate(backends_str)]
@@ -100,7 +106,7 @@ for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
         data_plot[k, :, :] .= data[:, end-1:end]
     end
 
-    N = prod(tests_domain_size[case]) .* 2 .^ (3 .* eval(Meta.parse.(log2p_str)))
+    N = prod(tests_dets[case]["size"]) .* 2 .^ (3 .* eval(Meta.parse.(log2p_str)))
     N_str = (N./1e6) .|> x -> @sprintf("%.2f", x)
     groups = repeat(N_str, inner=length(backends_str)) |> CategoricalArray
     levels!(groups, N_str)
@@ -108,10 +114,10 @@ for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
     levels!(ctg, backends_str)
     p = annotated_groupedbar(groups, transpose(data_plot[:,:,1]), ctg;
         series_annotations=vec(transpose(data_plot[:,:,2])) .|> x -> @sprintf("%d", x) .|> latexstring, bar_width=0.92,
-        Dict(:xlabel=>"DOF [M]", :title=>titles[case],
-            :ylims=>(1e-1, 1e4), :lw=>0, :framestyle=>:box, :yaxis=>:log, :grid=>true,
+        Dict(:xlabel=>"DOF [M]", :title=>tests_dets[case]["title"],
+            :ylims=>(1e-1, 1e5), :lw=>0, :framestyle=>:box, :yaxis=>:log, :grid=>true,
             :color=>reshape(palette([:cyan, :green], length(backends_str))[1:length(backends_str)], (1, length(backends_str))),
-            :size=>(600*length(cases_str), 600,)
+            :size=>(600*length(tests_ordered), 600,)
         )...
     )
     if kk == 1
@@ -122,5 +128,5 @@ for (kk, (case, benchmarks)) in enumerate(benchmarks_all_dict)
     push!(plots, p)
 end
 plot(plots..., layout=(1, length(plots)))#, fillrange = 0, par=(:MAP_LABEL_OFFSET, "2p"))
-savefig(string(@__DIR__) * "../../../../tex/img/benchmarks.pdf")
+savefig(string(@__DIR__) * fname)
 
