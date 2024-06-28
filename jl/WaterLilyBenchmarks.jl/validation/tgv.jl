@@ -52,8 +52,8 @@ t_max = 20.0
 T = Float64
 backend = CuArray
 run = true
-datadir = "data/tgv2"
-pdf_file = "../../../../tex/img/tgv2.pdf"
+datadir = "data/tgv"
+pdf_file = "../../../tex/img/tgv.pdf"
 
 data_dns = readdlm("data/tgv/TGV_Re1600.dat", skipstart=43)
 t_dns, E_dns, Z_dns = data_dns[:,1], data_dns[:,2], data_dns[:,3]
