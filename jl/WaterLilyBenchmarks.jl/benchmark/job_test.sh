@@ -13,7 +13,6 @@
 #SBATCH --time=48:00:00
 
 ml load julia
-
 export JULIA_DEPOT_PATH="/home/bsc/bsc021850/.julia-acc"
 export WATERLILY_DIR="/gpfs/projects/bsc21/bsc021850/WaterLily/WaterLily.jl"
 

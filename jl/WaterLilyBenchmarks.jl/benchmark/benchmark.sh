@@ -1,7 +1,6 @@
 #!/bin/bash
 
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-# export WATERLILY_DIR=$(dirname "${THIS_DIR}")
 
 # Utils
 join_array_comma () {

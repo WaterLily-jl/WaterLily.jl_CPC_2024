@@ -52,25 +52,28 @@ t_max = 20.0
 T = Float64
 backend = CuArray
 run = true
+datadir = "data/tgv2"
+pdf_file = "../../../../tex/img/tgv2.pdf"
 
-data = readdlm("data/tgv/TGV_Re1600.dat", skipstart=43)
-t_dns, E_dns, Z_dns = data[:,1], data[:,2], data[:,3]
+data_dns = readdlm("data/tgv/TGV_Re1600.dat", skipstart=43)
+t_dns, E_dns, Z_dns = data_dns[:,1], data_dns[:,2], data_dns[:,3]
 
 if run
+    mkpath(datadir)
     for p in ps
         E, Z, t = main(p, backend; Re=Re, T=T, t_max=t_max)
-        jldsave("data/tgv/p$p.jld2"; E=E, Z=Z, t=t)
+        jldsave(joinpath(datadir,"p$p.jld2"); E=E, Z=Z, t=t)
     end
 end
 
 p1 = plot(t_dns, E_dns, label="DNS", color=:black, linewidth=linewidth)
 p2 = plot(t_dns, Z_dns, label="DNS", color=:black, linewidth=linewidth)
 for p in ps
-    E, Z, t = jldopen("data/tgv/p$p.jld2")["E"], jldopen("data/tgv/p$p.jld2")["Z"], jldopen("data/tgv/p$p.jld2")["t"]
+    E, Z, t = jldopen(joinpath(datadir,"p$p.jld2"))["E"], jldopen(joinpath(datadir,"p$p.jld2"))["Z"], jldopen(joinpath(datadir,"p$p.jld2"))["t"]
     plot!(p1, t, E, label=L"%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
-    plot!(p1, xlabel=L"$t\pi/L$", ylabel="KE", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
+    plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
     plot!(p2, t, Z, label=L"%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
-    plot!(p2, xlabel=L"$t\pi/L$", ylabel="Z", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
+    plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
 end
 plot(p1, p2, layout=(1, 2))
-savefig(string(@__DIR__) * "../../../../tex/img/tgv.pdf")
+savefig(joinpath(string(@__DIR__), pdf_file))
