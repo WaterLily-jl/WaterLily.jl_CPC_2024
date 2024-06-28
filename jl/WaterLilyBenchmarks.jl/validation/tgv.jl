@@ -10,19 +10,19 @@ using JLD2
 
 Plots.default(
     fontfamily = "Computer Modern",
-    linewidth = 1,
+    linewidth = 3,
     framestyle = :box,
     grid = false,
     left_margin = Plots.Measures.Length(:mm, 5),
     right_margin = Plots.Measures.Length(:mm, 5),
     bottom_margin = Plots.Measures.Length(:mm, 5),
     top_margin = Plots.Measures.Length(:mm, 5),
-    titlefontsize = 15,
-    legendfontsize = 14,
-    tickfontsize = 14,
-    labelfontsize = 14,
+    titlefontsize = 20,
+    legendfontsize = 18,
+    tickfontsize = 18,
+    labelfontsize = 18,
 )
-linewidth = 2
+linewidth = 3
 
 function EZ!(σ, u, ν, L)
     Ω = prod(size(inside(σ)))
@@ -66,13 +66,13 @@ if run
     end
 end
 
-p1 = plot(t_dns, E_dns, label="DNS", color=:black, linewidth=linewidth)
-p2 = plot(t_dns, Z_dns, label="DNS", color=:black, linewidth=linewidth)
+p1 = plot(t_dns, E_dns, label=" DNS ", color=:black, linewidth=linewidth)
+p2 = plot(t_dns, Z_dns, label=" DNS ", color=:black, linewidth=linewidth)
 for p in ps
     E, Z, t = jldopen(joinpath(datadir,"p$p.jld2"))["E"], jldopen(joinpath(datadir,"p$p.jld2"))["Z"], jldopen(joinpath(datadir,"p$p.jld2"))["t"]
-    plot!(p1, t, E, label=L"%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
+    plot!(p1, t, E, label=L"~%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
     plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
-    plot!(p2, t, Z, label=L"%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
+    plot!(p2, t, Z, label=L"~%$(2^p)^3\,", linewidth=linewidth, linestyle=:dash)
     plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
 end
 plot(p1, p2, layout=(1, 2))
