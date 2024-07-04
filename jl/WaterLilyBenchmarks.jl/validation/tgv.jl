@@ -46,7 +46,7 @@ function main(p, backend; Re=1600, T=Float32, t_max=20.0, verbose=true)
     return E, Z, t
 end
 
-ps = [6,7,8]
+ps = [6,7,8,9]
 Re = 1600
 t_max = 20.0
 T = Float64
