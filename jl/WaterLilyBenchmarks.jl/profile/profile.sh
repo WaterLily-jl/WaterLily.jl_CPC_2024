@@ -1,8 +1,7 @@
 #!/bin/bash
 # Usage example
 #
-# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6"
-
+# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -r 1
 
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -25,24 +24,29 @@ update_environment () {
         julia --project=$THIS_DIR -e "using Pkg; Pkg.develop(PackageSpec(path=get(ENV, \"WATERLILY_DIR\", \"\"))); Pkg.update();"
     fi
 }
-
 # Run profiling
 run_profiling () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
     echo "Running: nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia ${full_args[@]}"
     nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia "${full_args[@]}"
 }
-
+# Run postprocessing
+run_postprocessing () {
+    full_args=(--project=${THIS_DIR} --startup-file=no $args)
+    echo "Running: julia ${full_args[@]}"
+    julia "${full_args[@]}"
+}
 # Print benchamrks info
 display_info () {
     echo "--------------------------------------"
-    echo "Running benchmark tests for:
+    echo "Running profiling tests for:
  - Julia:        $VERSION
  - Backends:     $BACKEND
  - Cases:        ${CASES[@]}
  - Size:         ${LOG2P[@]:0:$NCASES}
  - Sim. steps:   $MAXSTEPS
- - Data type:    $FTYPE"
+ - Data type:    $FTYPE
+ - Run:          $RUN"
     echo "--------------------------------------"; echo
 }
 
@@ -53,8 +57,9 @@ BACKEND='CuArray'
 # Default cases. Arrays below must be same length (specify each case individually)
 CASES=() # ('tgv' 'sphere' 'cylinder')
 LOG2P=() # ('5' '5' '5')
-MAXSTEPS='250'
+MAXSTEPS='300'
 FTYPE='Float32'
+RUN='1'
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -77,6 +82,10 @@ case "$1" in
     ;;
     --max_steps|-s)
     MAXSTEPS=($2)
+    shift
+    ;;
+    --run|-r)
+    RUN=($2)
     shift
     ;;
     --float_type|-ft)
@@ -117,8 +126,12 @@ args_case="--backend=$BACKEND --max_steps=$MAXSTEPS --ftype=$FTYPE"
 for ((i = 0; i < ${#CASES[@]}; ++i)); do
     case=${CASES[$i]}
     mkdir -p $THIS_DIR/data/$case
-    args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases"
-    run_profiling
+    args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=$RUN"
+    if [ $RUN == 1 ]; then
+        run_profiling
+    else
+        run_postprocessing
+    fi
 done
 
 # Postprocessing results
