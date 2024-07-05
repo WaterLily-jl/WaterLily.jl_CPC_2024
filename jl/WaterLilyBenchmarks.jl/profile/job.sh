@@ -14,4 +14,4 @@ ml load julia
 export JULIA_DEPOT_PATH="/home/bsc/bsc021850/.julia-acc"
 export WATERLILY_DIR="/gpfs/projects/bsc21/bsc021850/WaterLily/WaterLily.jl"
 
-sh profile.sh -c "tgv sphere cylinder" -p "8 5 6"
+sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -r 1

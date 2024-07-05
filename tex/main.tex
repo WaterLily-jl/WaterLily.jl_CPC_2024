@@ -266,9 +266,23 @@ Try different grid sizes, testing the GPUs at different capacity.
 Profiling with Nsight (see \cite{Gasparino2024}) for kernel time, CPU-GPU communication.
 
 \begin{figure}[!ht]
-    \hspace*{-1.2cm}
-    \includegraphics[width=1.1\linewidth]{img/benchmarks.pdf}
-	\caption{Time to run 100 time steps in single precision for the Taylor--Green vortex (left), fixed sphere (center), and moving cylinder (right) cases at different grid sizes. The CPU execution comprises multiple number of threads from single thread (serial) to 16 threads (multi-threading). The speedup for each case with respect to the its serial execution (CPUx1) is shown above each bar. The speedup is computed as time(CPUx1)/time(X). The benchmarks have been run on an accelerated node of the Marenostrum5 supercomputer using Intel Xeon Platinum 8460Y @ 2.3GHz cores and a NVIDIA Hopper H100 64GB HBM2 GPU.}
+  \centering
+  \begin{subfigure}[t]{0.33\linewidth}
+      \centering
+      \includegraphics[width=\linewidth]{img/tgv_benchmark.pdf}
+      \caption{TGV}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.33\linewidth}
+    \centering\hspace*{-0.2cm}
+    \includegraphics[width=\linewidth]{img/sphere_benchmark.pdf}
+    \caption{Sphere}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.33\linewidth}
+    \centering\hspace*{-0.2cm}
+    \includegraphics[width=\linewidth]{img/cylinder_benchmark.pdf}
+    \caption{Moving cylinder}
+  \end{subfigure}
+	\caption{Time to run 100 time steps in single precision for the Taylor--Green vortex (left), fixed sphere (center), and moving cylinder (right) cases at different grid sizes. The CPU execution comprises multiple number of threads from single thread (serial) to 16 threads (multi-threading). The speedup for each case with respect to the serial execution (CPUx1) is shown above each bar. The speedup is computed as time(CPUx1)/time(X). The benchmarks have been run on an accelerated node of the Marenostrum5 supercomputer using Intel Xeon Platinum 8460Y @ 2.3GHz cores and a NVIDIA Hopper H100 64GB HBM2 GPU.}
 	\label{fig:benchmarks}
 \end{figure}
 

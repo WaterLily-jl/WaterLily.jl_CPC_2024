@@ -4,22 +4,20 @@
 using BenchmarkTools, PrettyTables, Plots, StatsPlots, LaTeXStrings, CategoricalArrays, Printf, ColorSchemes
 
 # Utils
+fontsize = 20
+speedup_fontsize = 14
 Plots.default(
     fontfamily = "Computer Modern",
     linewidth = 1,
     framestyle = :box,
-#     label = nothing,
     grid = false,
-#     legend = :topleft,
-    # margin = (Plots.Measures.Length(:mm, 10)),
-    left_margin = Plots.Measures.Length(:mm, 20),
-    right_margin = Plots.Measures.Length(:mm, 5),
-    bottom_margin = Plots.Measures.Length(:mm, 15),
+    left_margin = Plots.Measures.Length(:mm, 24),
+    right_margin = Plots.Measures.Length(:mm, 0),
+    bottom_margin = Plots.Measures.Length(:mm, 5),
     top_margin = Plots.Measures.Length(:mm, 5),
-    titlefontsize = 15,
-    legendfontsize = 14,
-    tickfontsize = 14,
-    labelfontsize = 14,
+    legendfontsize = fontsize,
+    tickfontsize = fontsize,
+    labelfontsize = fontsize,
 )
 
 function Base.unique(ctg::CategoricalArray)
@@ -41,7 +39,7 @@ function annotated_groupedbar(xx, yy, group; series_annotations="", bar_width=1.
         y0 = gp[1][2j][:y][i]*1.3# + 0.04*dy
         if isfinite(y0)
             tex = series_annotations[k]
-            annotate!(x2[(i-1)*m + j], y0, text(series_annotations[k], :center, :black, 10))
+            annotate!(x2[(i-1)*m + j]*1.01, y0, text(series_annotations[k], :center, :black, speedup_fontsize))
             k += 1
         end
     end
@@ -55,7 +53,6 @@ tests_dets = Dict(
     "donut" => Dict("size" => (2, 1, 1), "title" => "Donut"),
 )
 tests_ordered = String["tgv", "sphere", "cylinder"]
-fname = "../../../../tex/img/benchmarks.pdf"
 
 # Load benchmarks
 benchmarks_all = [BenchmarkTools.load(fname)[1] for fname in ARGS if !occursin("--sort", fname)]
@@ -70,7 +67,6 @@ for b in benchmarks_all
 end
 
 # Table and plots
-# plots = Dict(Pair(c, Plots.Plot()) for c in cases_str)
 plots = Plots.Plot[]
 for (kk, case) in enumerate(tests_ordered)
     benchmarks = benchmarks_all_dict[case]
@@ -114,19 +110,18 @@ for (kk, case) in enumerate(tests_ordered)
     levels!(ctg, backends_str)
     p = annotated_groupedbar(groups, transpose(data_plot[:,:,1]), ctg;
         series_annotations=vec(transpose(data_plot[:,:,2])) .|> x -> @sprintf("%d", x) .|> latexstring, bar_width=0.92,
-        Dict(:xlabel=>"DOF [M]", :title=>tests_dets[case]["title"],
+        Dict(:xlabel=>"DOF [M]", # :title=>tests_dets[case]["title"],
             :ylims=>(1e-1, 1e5), :lw=>0, :framestyle=>:box, :yaxis=>:log, :grid=>true,
             :color=>reshape(palette([:cyan, :green], length(backends_str))[1:length(backends_str)], (1, length(backends_str))),
-            :size=>(600*length(tests_ordered), 600,)
+            :size=>(600, 600)
         )...
     )
     if kk == 1
-        plot!(p, ylabel=L"Time $[s]$", left_margin=Plots.Measures.Length(:mm, 15), legend=:topleft)
+        plot!(p, ylabel=L"Time $[s]$", legend=:topleft, left_margin=Plots.Measures.Length(:mm, 0))
     else
-        plot!(p, ylabel="", left_margin=Plots.Measures.Length(:mm, 0), legend=false, yformatter=Returns(""), )
+        plot!(p, ylabel="", legend=false, yformatter=Returns(""))
     end
+    savefig(p, string(@__DIR__)*"../../../../tex/img/$(case)_benchmark.pdf")
     push!(plots, p)
 end
-plot(plots..., layout=(1, length(plots)))#, fillrange = 0, par=(:MAP_LABEL_OFFSET, "2p"))
-savefig(string(@__DIR__) * fname)
 
