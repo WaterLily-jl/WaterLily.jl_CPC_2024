@@ -9,7 +9,7 @@
 %% http://www.elsevier.com/wps/find/authorsview.authors/elsarticle.
 %%
 %%
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[final,3p,times]{elsarticle}
 
 %% Use the option review to obtain double line spacing
 %% \documentclass[preprint,review,12pt]{elsarticle}
@@ -31,11 +31,24 @@
 %% or use the epsfig package if you prefer to use the old commands
 %% \usepackage{epsfig}
 
-%% The amssymb package provides various useful mathematical symbols
 \usepackage{amssymb}
-%% The amsthm package provides extended theorem environments
-%% \usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{xcolor}
+\usepackage{hyperref}
 
+\hypersetup{
+	unicode=true,
+	pdftitle={A descriptive title},
+	pdfnewwindow=true,
+	colorlinks=true, 	% (false,true)
+	pdfborder={0 0 0},
+	linkcolor=blue,
+	linktoc=all, 		% (none,all)
+	citecolor=blue,
+	urlcolor=blue,
+	breaklinks=false,
+}
 %% The lineno packages adds line numbers. Start line numbering with
 %% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
 %% for the whole article with \linenumbers after \end{frontmatter}.
@@ -82,6 +95,9 @@
 
 \journal{Computer Physics Communications}
 
+
+\newcommand\WaterLily[0]{\textsc{WaterLily}~}
+
 \begin{document}
 
 \begin{frontmatter}
@@ -107,7 +123,7 @@
 %% \address{Address\fnref{label3}}
 %% \fntext[label3]{}
 
-\title{WaterLily.jl: A Julia solver to simulate fluid flow and dynamic bodies with heterogeneous execution}
+\title{WaterLily.jl: A differentiable Julia solver to simulate fluid flow and dynamic bodies with heterogeneous execution}
 
 %% use optional labels to link authors explicitly to addresses:
 %% \author[label1,label2]{<author name>}
@@ -197,31 +213,47 @@ heterogeneous programming; Cartesian-grid methods; Julia; GPU
 \end{small}
 
 
-%% main text
 \section{Introduction}
 
-Similar to the arXiv paper, and mention some other codes here too.
-Some references published at CPC that we could cite and follow to organise this paper:
+During the last decade, the computational fluid dynamics (CFD) community has embraced the surge of machine learning (ML) and the new developments in hardware architecture, such as general-purpose GPUs. Hence, classic CFD solvers based on low-level programming languages (C, Fortran) and CPU memory-distributed execution are now adapted to accommodate these new tools. On one hand, the integration of high-level ML libraries and low-level CFD solvers is not straight-forward, aka. the two-language problem \cite{Churavy2022}. When deploying a ML model online with the CFD solver, data exchange is often performed at disk level, significantly slowing down the overall runtime because of disk read/write operations. An improved way to exchange data is performed through memory, either using Unix sockets \cite{Rabault2019, Font2021}, message-passing interface (MPI) \cite{Guastoni2023}, or an in-memory distributed database \cite{Kurz2022,Font2024}, which increases the software complexity. On the other hand, porting classic CFD solvers to GPU is also a non-trivial task which often requires the input and expertise of GPU vendors \cite{Romero2022}. Still, the CFD community has been an active asset in this transition, and it currently offers a rich variety of open-source multi-GPU solvers as summarised in table \ref{tab:solvers}.
 
-\begin{itemize}
-  \item \cite{Romero2022}
-  \item \cite{Bernardini2021,Bernardini2023}
-  \item \cite{Gasparino2023}
-\end{itemize}
+\begin{table}[!ht]
+\hspace{-1.5cm}
+\begin{tabular}{ l  l  l  l}
+    \hline
+    \multicolumn{1}{l}{\textbf{Name}} & \multicolumn{1}{l}{\textbf{Application}} & \multicolumn{1}{l}{\textbf{Method}} & \multicolumn{1}{l}{\textbf{Language}} \\
+    \hline\hline
+    CANS \cite{Costa2018} & Incompressible canonical flows on Cartesian grids & FDM & Fortran/OpenACC \\
+    GAL{\AE}XI \cite{Kempf2024} & Compressible flows on unstructured grids & DG & CUDA-Fortran \\
+    nekRS \cite{Fischer2022} & Incompressible flows on unstructured grids & SEM & C++/OCCA \\
+    OpenSBLI \cite{Lusher2021} & Code-generation system for compressible flows on structured grids & FDM & Python + CUDA/OpenCL \\
+    PyFR \cite{Witherden2015} & Compressible flows on unstructured grids & FR & Python + C/OpenMP, CUDA, OpenCL \\
+    RHEA \cite{Jofre2023} & Compressible flows on Cartesian grids & FDM & C++/OpenACC \\
+    SOD2D \cite{Gasparino2024} & Compressible/incompressible flows on unstructured grids & SEM & Fortran/OpenACC \\
+    STREAmS \cite{Bernardini2021} & Compressible canonical wall-bounded flows on Cartesian grids & FDM & CUDA-Fortran \\
+    \hline
+\end{tabular}\label{tab:solvers}
+\caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FEM), discontinous Galerkin (DG), spectral element method (SEM), and flux reconstruction (FR).}
+\end{table}
 
-\section{Numerical methods}
+In this context, Julia \cite{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the KernelAbstractions.jl library \cite{Churavy2023}, which enables writing heterogeneous kernels for different backends (multi-threaded CPU, NVIDIA, AMD, and others) in a single framework.
+Julia has been also tested in many HPC systems, and the reader is referred to \cite{Churavy2022} for a comprehensive review.
+
+In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \href{https://github.com/weymouth/WaterLily.jl}{\WaterLily}. Differently to the solvers detailed in table \ref{tab:solvers}, \WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less that 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
+
+\section{Numerical methods}\label{sec:numerical_methods}
 \begin{itemize}
   \item FV, BDIM, GMG
 \end{itemize}
 
-\section{Software design}
+\section{Software design}\label{sec:software_design}
 \begin{itemize}
   \item N-dimensional solver
   \item KernelAbstractions.jl
   \item Auto bodies
 \end{itemize}
 
-\section{Benchmark and validation}
+\section{Benchmark and validation} \label{sec:benchmark_validation}
 \begin{itemize}
   \item Cases: TGV (no body), fixed sphere, transverse motion cylinder
   \item Architectures: NVIDIA H100 (Marenostrum 5 at BSC), AMD Radeon Instinct MI50 (CTE-AMD cluster at BSC), serial execution (?)
@@ -229,36 +261,64 @@ Some references published at CPC that we could cite and follow to organise this 
 
 Try different grid sizes, testing the GPUs at different capacity.
 
-Profiling with Nsight (see \cite{Gasparino2023}) for kernel time, CPU-GPU communication.
+Profiling with Nsight (see \cite{Gasparino2024}) for kernel time, CPU-GPU communication.
 
-\section{Flashy test cases}
-For example...
+\begin{figure}[!ht]
+    \hspace*{-1.2cm}
+    \includegraphics[width=1.1\linewidth]{img/benchmarks.pdf}
+	\caption{Time to run 100 time steps in single precision for the Taylor--Green vortex (left), fixed sphere (center), and moving cylinder (right) cases at different grid sizes. The CPU execution comprises multiple number of threads from single thread (serial) to 16 threads (multi-threading). The speedup for each case with respect to the its serial execution (CPUx1) is shown above each bar. The speedup is computed as time(CPUx1)/time(X). The benchmarks have been run on an accelerated node of the Marenostrum5 supercomputer using Intel Xeon Platinum 8460Y @ 2.3GHz cores and a NVIDIA Hopper H100 64GB HBM2 GPU.}
+	\label{fig:benchmarks}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{img/tgv.pdf}
+	\caption{Taylor--Green vortex (TGV) validation. Direct numerical simulation (DNS) data from \cite{Dairay2017} is used as reference.}
+	\label{fig:tgv}
+\end{figure}
+
+To Do:
 \begin{itemize}
-  \item 2D pitching/heaving airfoils (parametric bodies)
-  \item Jellyfish (expanding/contracting bodies)
-  \item Adaptive sampling (CFD+"ML"): what parametric space do we sample? Maybe shark test case finding a surface response for thrust or vorticity field.
-  % \item RL control (Arthur case) to show integration of CFD and ML?
+  \item Cylinder case is not going turbulent with periodic BCs
+  \item Table/Plot with speed/DOF/dt for the different cases
+  \item NVSight profiling
+  \item Validation of TGV different grids (show grid convergence), and sphere fine grid
 \end{itemize}
 
-\section{Conclusions}
+\section{Sample applications}\label{sec:applications}
+Three applications are selected to demonstrate the capability of the package to analyse general fluid flows. The examples also showcase the advantages of a differentiable back-end agnostic Cartesian-grid solver.
 
+\subsection{Optimized control cylinders}
 
-%% The Appendices part is started with the command \appendix;
-%% appendix sections are then done as normal sections
-%% \appendix
+\begin{figure}
+    \includegraphics[width=\linewidth]{img/tandem.png}
+    \caption{Tandem flapping foils}
+    \label{fig:spinning_circle}
+\end{figure}
 
-%% \section{}
-%% \label{}
+The first example will be optimizing the controlled 2D flow around a circle using a pair of small spinning circles placed 120 degrees relative to the inflow direction, Fig~\ref{fig:spinning_circle}a. Experimental and numerical studies of this system have show the capability of the spinning cylinders to control the flow over the large circle [ref,ref], establishing a steady symmetric wake, reducing the system drag and even producing a net thrust as the rotation rate is increased.
 
-%% References
-%%
-%% Following citation commands can be used in the body text:
-%% Usage of \cite is as follows:
-%%   \cite{key}         ==>>  [#]
-%%   \cite[chap. 2]{key} ==>> [#, chap. 2]
-%%
+The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=c/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain. WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions, allowing the two bodies to be added to the simulation trivially.
 
-%% References with bibTeX database:
+We use the differentiable solver to maximize the scaled propulsive power $C_P = FU/\rho dc^3$ where $F$ is the net thrust force on the system. This metric is  proportional to the propulsive efficiency since $\rho dc^3$ scales with the power required to rotate the control cylinders [ref]. The time history of $C_P$ is plotted for a few values of $\xi$ in Fig~\ref{fig:spinning_circle}b, demonstrating that only a few convective cycles are required to reach steady state, as well as the control authority of $\xi$ over the propulsive power.
+
+We optimize $\hat\xi=\text{argmin}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidson's method [ref], which evaluates $C_P$ and it's derivative $\partial C_P/\partial \xi$ at points bracketing an optimum, using inverse cubic interpolation to iteratively restrict the interval. Both the value and derivative of the power are computed simultaneously using dual numbers, at a cost only 80\% larger than evaluating the function alone. Fig~\ref{fig:spinning_circle}c shows the resulting evaluation history starting with the interval $\xi=[3,8]$, leading to the optimum $\hat\xi\approx 6.25$ in a few iterations. Rates above this optimum produce more net thrust, but require excessive rotation rates to produce.
+
+\subsection{Deforming and dynamic geometries}
+
+The final two examples showcase the solvers ability to handle more complex geometries with ease. The first is a pulsing jellyfish-inspired geometry, and the second is a flapping butterfly-inspired geometry. Both of these cases are fast enough to simulate on a laptop GPU for live demonstrations.
+
+The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this case taking the difference of a hollow sphere with an oriented plane. This geometry is made to pulse by mapping the coordinates harmonically in the radial and transverse directions. While the geometry maintains a roughly constant solid volume throughout the pulse, small deviations are handled gracefully by the solver. Fig~\ref{} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. Each cycle generates a strong propulsive vortex ring which breaks up as it propagates away, in qualitative agreement with experimental studies [ref].
+
+The butterfly geometry is a pair of membrane wings defined using the ParametricBodies package [ref]. The wing's planform is defined by a set of planar points which are interpolated using a cubic spline. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic coordinate rotations about the "shoulder" are used to flap the wings. Fig~\ref{} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. The classic clap-and-fling vortex formations are observed [ref].
+
+\section{Conclusions}\label{sec:conclusions}
+
+\section{Acknowledgements}\label{sec:acknowledgements}
+\begin{itemize}
+    \item BSC HPC services
+    \item Dr. Lucas Gasparino
+\end{itemize}
 
 \bibliographystyle{elsarticle-num}
 \bibliography{main.bib}
