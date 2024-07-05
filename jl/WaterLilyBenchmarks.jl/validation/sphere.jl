@@ -103,7 +103,7 @@ function run_sim(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
-        push!(u_probe, view(sim.flow.u,u_probe_loc...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
+        push!(u_probe, view(sim.flow.u,Int.(u_probe_loc .* sim.L)...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
         verbose && println("Cd = ",round(force[end][1],digits=4))
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
