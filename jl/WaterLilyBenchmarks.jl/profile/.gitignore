@@ -1,3 +1,4 @@
 *.qdstrm
 *.nsys-rep
+*.sqlite
 Manifest.toml
