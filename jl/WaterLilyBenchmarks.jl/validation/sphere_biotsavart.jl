@@ -2,6 +2,7 @@ using Revise
 using StaticArrays
 using CUDA
 using WaterLily
+using BiotSavartBCs
 using ReadVTK, WriteVTK
 using FFTW, Interpolations, JLD2, Plots, LaTeXStrings, Printf, DSP
 import Base: time
@@ -94,15 +95,31 @@ function read_forces(fname::String; dir="data/")
     return obj["force"], obj["u_probe"], obj["time"]
 end
 
+function sim_step_biotsavart!(sim::Simulation,ω,t_end;remeasure=true,max_steps=typemax(Int),verbose=false)
+    steps₀ = length(sim.flow.Δt)
+    while sim_time(sim) < t_end && length(sim.flow.Δt) - steps₀ < max_steps
+        sim_step_biotsavart!(sim,ω; remeasure)
+        verbose && println("tU/L=",round(sim_time(sim),digits=4),
+            ", Δt=",round(sim.flow.Δt[end],digits=3))
+    end
+end
+function sim_step_biotsavart!(sim::Simulation,ω;remeasure=true)
+    remeasure && measure!(sim)
+    biot_mom_step!(sim.flow,sim.pois,ω)
+end
+
 function run_sim(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
     sim = sphere(p, backend; DD, L, Re, T)
+    ω = ntuple(i->MLArray(sim.flow.σ),3)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
+    u_probe_loc_n = Int.(u_probe_loc .* sim.L)
     while sim_time(sim) < time_max
-        sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
+        # sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
+        sim_step_biotsavart!(sim, ω, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
-        push!(u_probe, view(sim.flow.u,Int.(u_probe_loc .* sim.L)...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
+        push!(u_probe, view(sim.flow.u,u_probe_loc_n...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
         verbose && println("Cd = ",round(force[end][1],digits=4))
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
@@ -134,7 +151,8 @@ end
 backend = CuArray
 T = Float32
 Re = 3700
-ps = [4,5,6]
+# ps = [4,5,6]
+ps = [5]
 stats = true
 stats_turb = false
 time_max = 400.0 # in CTU
