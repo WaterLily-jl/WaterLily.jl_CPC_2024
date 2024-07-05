@@ -14,26 +14,26 @@ arg_value(arg) = split(ARGS[iarg(arg)], "=")[end]
 metaparse(x) = eval(Meta.parse(x))
 getf(str) = eval(Symbol(str))
 
-function main(sim, max_steps)
-    for _ in 1:10 sim_step!(sim; remeasure=false) end # compilation and warmup
-    for i in 1:max_steps sim_step_profile!(sim; remeasure=false) end # profiling
+function main(sim, max_steps; remeasure=false)
+    for _ in 1:10 sim_step!(sim; remeasure=remeasure) end # compilation and warmup
+    for i in 1:max_steps sim_step_profile!(sim; remeasure=remeasure) end # profiling
 end
 
-const max_steps = 300
-const T = Float32
-const B = CuArray
+const max_steps_const = 200
+const T_const = Float32
+const B_const = CuArray
 
 # if "--run" in ARGS, run profiling
 isnothing(iarg("case")) && @error "No case specified."
 case = arg_value("case")
 if metaparse(arg_value("run")) == 1
     log2p = !isnothing(iarg("log2p")) ? arg_value("log2p") |> metaparse : log2p
-    max_steps = !isnothing(iarg("max_steps")) ? arg_value("max_steps") |> metaparse : max_steps
-    ftype = !isnothing(iarg("ftype")) ? arg_value("ftype") |> metaparse : T
-    backend = !isnothing(iarg("backend")) ? arg_value("backend") |> x -> eval(Symbol(x)) : B
+    max_steps = !isnothing(iarg("max_steps")) ? arg_value("max_steps") |> metaparse : max_steps_const
+    ftype = !isnothing(iarg("ftype")) ? arg_value("ftype") |> metaparse : T_const
+    backend = !isnothing(iarg("backend")) ? arg_value("backend") |> x -> eval(Symbol(x)) : B_const
 
     sim = getf(case)(log2p, backend; T=ftype)
-    main(sim, max_steps)
+    main(sim, max_steps; remeasure=case=="cylinder")
 else
     # Postproc results
     nsys_fields = ["time_pc", "time_total", "instances", "time_avg", "time_med", "time_min", "time_max", "time_std", "range"]
@@ -81,17 +81,20 @@ else
         axis = (aspect = AxisAspect(1), autolimitaspect = 1),
     )
     hidedecorations!(ax); hidespines!(ax)
-    nc = length(kernel_weighted_time)
-    cbar = Colorbar(fig[1,2], colormap = cgrad(colors, categorical = true))
-    cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
+    # colorbar
+    # if case == "cylinder"
+        nc = length(kernel_weighted_time)
+        cbar = Colorbar(fig[1,2], colormap = cgrad(colors, categorical = true))
+        cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
+    # end
     data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
     for (i, c) in enumerate(colors)
         θ = (sum(data[1:i-1]) + data[i]/2)*2π
         x = 0.5*cos(θ)
         y = 0.5*sin(θ)
         pc = kernel_weighted_time[i]/sum(kernel_weighted_time)*100
-        pc > 2 && Makie.text!(x/0.6, y/0.6, text=@sprintf("%.0f", pc), color=:white, fontsize=20)
+        pc > 1.5 && Makie.text!(x/0.6, y/0.6, text=@sprintf("%.0f", pc), color=:white, fontsize=20)
     end
-    save(string(@__DIR__) * "../../../../tex/img/$(case)_profiling.pdf", fig)
+    save(string(@__DIR__) * "../../../../tex/img/$(case)_profile.pdf", fig)
     end
 end

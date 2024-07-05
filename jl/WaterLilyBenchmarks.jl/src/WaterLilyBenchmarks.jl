@@ -70,7 +70,7 @@ function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr; datadir="
         println("Benchmarking: $(case)")
         suite = BenchmarkGroup()
         results = BenchmarkGroup([case, "sim_step!", p, s, ft, bstr, git_hash, string(VERSION)])
-        add_to_suite!(suite, getf(case); p=p, s=s, ft=ft, backend=backend, bstr=bstr) # create benchmark
+        add_to_suite!(suite, getf(case); p=p, s=s, ft=ft, backend=backend, bstr=bstr, remeasure=case=="cylinder") # create benchmark
         results[bstr] = run(suite[bstr], samples=1, evals=1, seconds=1e6, verbose=true) # run!
         fname = "$(case)_$(p...)_$(s)_$(ft)_$(bstr)_$(git_hash)_$VERSION.json"
         BenchmarkTools.save(joinpath(datadir,fname), results)
@@ -78,7 +78,6 @@ function run_benchmarks(cases, log2p, max_steps, ftype, backend, bstr; datadir="
 end
 
 export tgv, sphere, cylinder, donut, jelly
-# export flow_ωmag!, visualize!
 export run_benchmarks, parse_cla, git_hash
 
 end # module WaterLilyBenchamarks

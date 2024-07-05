@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage example
-#
-# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -r 1
+
+# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -s 500 -r 1
 
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -29,6 +29,7 @@ run_profiling () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
     echo "Running: nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia ${full_args[@]}"
     nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia "${full_args[@]}"
+    # nsys stats -r nvtx_startend_sum --force-export=true $THIS_DIR/data/$case/$case.nsys-rep
 }
 # Run postprocessing
 run_postprocessing () {
@@ -56,8 +57,8 @@ VERSION=$JULIA_USER_VERSION
 BACKEND='CuArray'
 # Default cases. Arrays below must be same length (specify each case individually)
 CASES=() # ('tgv' 'sphere' 'cylinder')
-LOG2P=() # ('5' '5' '5')
-MAXSTEPS='300'
+LOG2P=() # ('7' '5' '6')
+MAXSTEPS='200'
 FTYPE='Float32'
 RUN='1'
 
@@ -122,21 +123,17 @@ display_info
 # update_environment
 
 # Profiling
-args_case="--backend=$BACKEND --max_steps=$MAXSTEPS --ftype=$FTYPE"
+args_cases="--backend=$BACKEND --max_steps=$MAXSTEPS --ftype=$FTYPE"
 for ((i = 0; i < ${#CASES[@]}; ++i)); do
     case=${CASES[$i]}
     mkdir -p $THIS_DIR/data/$case
-    args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=$RUN"
-    if [ $RUN == 1 ]; then
+    if [ $RUN -eq 1 ]; then
+        args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=1"
         run_profiling
-    else
-        run_postprocessing
     fi
+    args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=0"
+    run_postprocessing
 done
-
-# Postprocessing results
-
-
 
 echo "All done!"
 exit 0
