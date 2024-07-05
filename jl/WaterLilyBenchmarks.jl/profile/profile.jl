@@ -70,31 +70,32 @@ else
     kernel_weighted_time = kernel_weighted_time[sortidx]
     colors = [:yellow, :orange, :red, :blue, :purple, :green, :cyan]
 
-    with_theme(theme_latexfonts()) do
-    fig, ax, plt = pie(
-        kernel_weighted_time,
-        color = colors,
-        radius = 1,
-        inner_radius = 0.6 ,
-        strokecolor = :white,
-        strokewidth = 1,
-        axis = (aspect = AxisAspect(1), autolimitaspect = 1),
-    )
-    hidedecorations!(ax); hidespines!(ax)
-    # colorbar
-    if case == "cylinder"
-        nc = length(kernel_weighted_time)
-        cbar = Colorbar(fig[1,2], colormap = cgrad(colors, categorical = true))
-        cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
-    end
-    data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
-    for (i, c) in enumerate(colors)
-        θ = (sum(data[1:i-1]) + data[i]/2)*2π
-        x = 0.5*cos(θ)
-        y = 0.5*sin(θ)
-        pc = kernel_weighted_time[i]/sum(kernel_weighted_time)*100
-        pc > 1.5 && Makie.text!(x/0.6, y/0.6, text=@sprintf("%.0f", pc), color=:white, fontsize=20)
-    end
-    save(string(@__DIR__) * "../../../../tex/img/$(case)_profile.pdf", fig)
+    with_theme(theme_latexfonts(), fontsize=25, figure_padding=1) do
+        fig, ax, plt = pie(
+            kernel_weighted_time,
+            color = colors,
+            radius = 1,
+            inner_radius = 0.6 ,
+            strokecolor = :white,
+            strokewidth = 1,
+            axis = (aspect = AxisAspect(1), autolimitaspect = 1),
+        )
+        fig.scene.theme[:figure_padding]=1
+        hidedecorations!(ax); hidespines!(ax)
+        # colorbar
+        if case == "cylinder"
+            nc = length(kernel_weighted_time)
+            cbar = Colorbar(fig[1,2], colormap = cgrad(colors, categorical = true))
+            cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
+        end
+        data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
+        for (i, c) in enumerate(colors)
+            θ = (sum(data[1:i-1]) + data[i]/2)*2π
+            x = 0.5*cos(θ)
+            y = 0.5*sin(θ)
+            pc = kernel_weighted_time[i]/sum(kernel_weighted_time)*100
+            pc > 1.5 && Makie.text!(x/0.6, y/0.6, text=@sprintf("%.0f", pc), color=:white)
+        end
+        save(string(@__DIR__) * "../../../../tex/img/$(case)_profile.pdf", fig)
     end
 end
