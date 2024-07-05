@@ -21,12 +21,11 @@ Plots.default(
     labelfontsize = 14,
 )
 
-function sphere(p, backend; Re=3700, T=Float32)
-    D = 3*2^p; U = 1; ν = U*D/Re
-    L = (8D, 2D, 2D)
+function sphere(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
+    D = DD*2^p; U = 1; ν = U*D/Re
     center = SA[2D, 1D, 1D]
     body = AutoBody((x,t)-> √sum(abs2, x .- center) - D/2)
-    Simulation(L, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
+    Simulation(L.*D, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
 end
 
 struct MeanFlow{T, Sf<:AbstractArray{T}, Vf<:AbstractArray{T}, Mf<:AbstractArray{T}}
@@ -95,8 +94,8 @@ function read_forces(fname::String; dir="data/")
     return obj["force"], obj["u_probe"], obj["time"]
 end
 
-function run_sim(p, backend; Re=3700, T=Float32)
-    sim = sphere(p, backend; Re=Re, T=T)
+function run_sim(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
+    sim = sphere(p, backend; DD, L, Re, T)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
     D = 2^p
@@ -104,7 +103,7 @@ function run_sim(p, backend; Re=3700, T=Float32)
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
-        push!(u_probe, view(sim.flow.u,7D,5D,4D,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
+        push!(u_probe, view(sim.flow.u,u_probe_loc...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
         verbose && println("Cd = ",round(force[end][1],digits=4))
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
@@ -143,6 +142,9 @@ time_max = 400.0 # in CTU
 stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
+L = (8,2,2) # domain size in D
+DD = 1 # factor multiplying D: DD*2^p
+u_probe_loc = (4,1.5,1.5) # in D
 datadir = "data/sphere/"
 fname_output = "meanflow"
 verbose = true
@@ -167,7 +169,7 @@ function main()
         println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
         println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
         if _plot
-            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", 14*8*8*2^(p*3)/1e6)*" M")
+            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*(DD*2^p)))/1e6)*" M")
             plot!(CD_plot, xlabel=L"$tU/D$", ylabel=L"$-C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
             savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_CD.pdf")
         end
