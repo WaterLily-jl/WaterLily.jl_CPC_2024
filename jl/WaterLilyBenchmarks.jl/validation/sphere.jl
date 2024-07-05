@@ -169,7 +169,7 @@ function main()
         println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
         println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
         if _plot
-            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*(DD*2^p)))/1e6)*" M")
+            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*(DD*2^p))/1e6)*" M")
             plot!(CD_plot, xlabel=L"$tU/D$", ylabel=L"$-C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
             savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_CD.pdf")
         end
