@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage example
 
-# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -s 500 -r 1
+# sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -s 1000 -r 1
 
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -29,7 +29,6 @@ run_profiling () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
     echo "Running: nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia ${full_args[@]}"
     nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia "${full_args[@]}"
-    # nsys stats -r nvtx_startend_sum --force-export=true $THIS_DIR/data/$case/$case.nsys-rep
 }
 # Run postprocessing
 run_postprocessing () {
@@ -60,7 +59,7 @@ CASES=() # ('tgv' 'sphere' 'cylinder')
 LOG2P=() # ('7' '5' '6')
 MAXSTEPS='200'
 FTYPE='Float32'
-RUN='1'
+RUN='0'
 
 # Parse arguments
 while [ $# -gt 0 ]; do

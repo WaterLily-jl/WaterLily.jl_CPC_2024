@@ -19,7 +19,7 @@ function main(sim, max_steps; remeasure=false)
     for i in 1:max_steps sim_step_profile!(sim; remeasure=remeasure) end # profiling
 end
 
-const max_steps_const = 200
+const max_steps_const = 1000
 const T_const = Float32
 const B_const = CuArray
 
@@ -82,11 +82,11 @@ else
     )
     hidedecorations!(ax); hidespines!(ax)
     # colorbar
-    # if case == "cylinder"
+    if case == "cylinder"
         nc = length(kernel_weighted_time)
         cbar = Colorbar(fig[1,2], colormap = cgrad(colors, categorical = true))
         cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
-    # end
+    end
     data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
     for (i, c) in enumerate(colors)
         θ = (sum(data[1:i-1]) + data[i]/2)*2π
