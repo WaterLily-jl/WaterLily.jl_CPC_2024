@@ -22,9 +22,9 @@ Plots.default(
 )
 
 function sphere(p, backend; Re=3700, T=Float32)
-    D = 2^p; U = 1; ν = U*D/Re
-    L = (14D, 8D, 8D)
-    center = SA[4D, 4D, 4D]
+    D = 3*2^p; U = 1; ν = U*D/Re
+    L = (8D, 2D, 2D)
+    center = SA[2D, 1D, 1D]
     body = AutoBody((x,t)-> √sum(abs2, x .- center) - D/2)
     Simulation(L, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
 end
@@ -143,7 +143,7 @@ time_max = 400.0 # in CTU
 stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
-datadir = "data/sphere2/"
+datadir = "data/sphere/"
 fname_output = "meanflow"
 verbose = true
 run = 1 # 0: postproc, 1: run
