@@ -34,7 +34,7 @@ function annotated_groupedbar(xx, yy, group; series_annotations="", bar_width=1.
     n = length(unique(xx))          # number of groups
     xt = (1:n) .- 0.5               # plot x-coordinate of groups' centers
     dx = bar_width/m                # each group occupies bar_width units along x
-    dy = diff([extrema(yy)...])[1]
+    # dy = diff([extrema(yy)...])[1]
     x2 = [xt[i] + (j - m/2 - 0.3)*dx for j in 1:m, i in 1:n][:]
     k = 1
     for i in 1:n, j in 1:m
@@ -112,7 +112,7 @@ for (kk, case) in enumerate(tests_ordered)
         ms=10, ma=1, ylims=(1,30),
         label=tests_dets[case]["title"], xlabel="Grid level", lw=0, framestyle=:box, grid=:y, size=(600, 600), legend=true,
         legendfontsize=15, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
-        ylabel=L"Cost $[\mathrm{n}s/\mathrm{DOF}/\mathrm{dt}]$"
+        ylabel="Cost [ns/DOF/dt]"
     )
 
     # Speedup plot
@@ -131,7 +131,7 @@ for (kk, case) in enumerate(tests_ordered)
         )...
     )
     if kk == 1
-        plot!(p, ylabel=L"Time $[s]$", legend=:topleft, left_margin=Plots.Measures.Length(:mm, 0))
+        plot!(p, ylabel="Time [s]", legend=:topleft, left_margin=Plots.Measures.Length(:mm, 0))
     else
         plot!(p, ylabel="", legend=false, yformatter=Returns(""))
     end
