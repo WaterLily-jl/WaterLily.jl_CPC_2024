@@ -21,10 +21,9 @@ Plots.default(
     labelfontsize = 14,
 )
 
-function sphere(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
+function sphere(p, backend; DD=1, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
     D = DD*2^p; U = 1; ν = U*D/Re
-    center = SA[2D, 1D, 1D]
-    body = AutoBody((x,t)-> √sum(abs2, x .- center) - D/2)
+    body = AutoBody((x,t)-> √sum(abs2, x .- (center .* D)) - D/2)
     Simulation(L.*D, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
 end
 
@@ -94,8 +93,8 @@ function read_forces(fname::String; dir="data/")
     return obj["force"], obj["u_probe"], obj["time"]
 end
 
-function run_sim(p, backend; DD=1, L=(8,2,2), Re=3700, T=Float32)
-    sim = sphere(p, backend; DD, L, Re, T)
+function run_sim(p, backend; DD=3, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
+    sim = sphere(p, backend; DD, L, center, Re, T)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
     while sim_time(sim) < time_max
@@ -142,6 +141,7 @@ stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
 L = (8,2,2) # domain size in D
+center = SA[2,1,1]
 DD = 1 # factor multiplying D: DD*2^p
 u_probe_loc = (4,1.5,1.5) # in D
 datadir = "data/sphere/"
@@ -155,7 +155,7 @@ function main()
     for p in ps
         println("Running p = $p")
         if run == 1
-            _, meanflow, force = run_sim(p, backend; Re=Re, T=T)
+            _, meanflow, force = run_sim(p, backend; DD, L, center, Re, T)
         end
         # postproc forces
         t_init, sampling_rate = stats_init, 0.1
