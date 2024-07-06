@@ -107,13 +107,13 @@ function monarch(;L=32,U=1,Re=500,T=Float32,mem=Array)
         Rx*100*(x/L-SA[0.75,0.1,1.5])
     end
     body=PlanarParametricBody(planform,(0,1);map)
-    Simulation((3L,2L,4L),(0.2,0,-0.2),L;U,ν=U*L/Re,body,T,mem)
+    Simulation((3L,2L,4L),(0.2,0.,-0.2),L;U,ν=U*L/Re,body,T,mem)
 end
 
 begin
     # Define geometry and motion on CPU
     sim = monarch(mem=CuArray);
-    sim_step!(sim,3);
+    sim_step!(sim,4);
 
     # Create CPU buffer arrays for geometry flow viz 
     a = sim.flow.σ
@@ -122,7 +122,7 @@ begin
 
     # Set up geometry viz
     geom = geom!(md,d,sim) |> Observable;
-    fig, _, _ = GLMakie.mesh(geom, alpha=0.3, color=:cyan)
+    fig, _, _ = GLMakie.mesh(geom, alpha=0.3, color=:fuchsia)
 
     # #Set up flow viz
     ω = ω!(md,d,sim) |> Observable;
@@ -131,7 +131,7 @@ begin
 end
 
 foreach(1:6) do frame
-    sim_step!(sim,sim_time(sim)+1.25);
+    sim_step!(sim,sim_time(sim)+1);
     geom[] = geom!(md,d,sim);
     ω[] = ω!(md,d,sim);
     save("Butterfly_$frame.png",fig)
