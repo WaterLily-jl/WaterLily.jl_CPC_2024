@@ -46,6 +46,7 @@ display_info () {
  - Size:         ${LOG2P[@]:0:$NCASES}
  - Sim. steps:   $MAXSTEPS
  - Data type:    $FTYPE
+ - File:         $FILE
  - Run:          $RUN"
     echo "--------------------------------------"; echo
 }
@@ -57,9 +58,10 @@ BACKEND='CuArray'
 # Default cases. Arrays below must be same length (specify each case individually)
 CASES=() # ('tgv' 'sphere' 'cylinder')
 LOG2P=() # ('7' '5' '6')
-MAXSTEPS='200'
+MAXSTEPS='1000'
 FTYPE='Float32'
 RUN='0'
+FILE='profile.jl'
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -86,6 +88,10 @@ case "$1" in
     ;;
     --run|-r)
     RUN=($2)
+    shift
+    ;;
+    --file|-f)
+    FILE=($2)
     shift
     ;;
     --float_type|-ft)
@@ -127,10 +133,10 @@ for ((i = 0; i < ${#CASES[@]}; ++i)); do
     case=${CASES[$i]}
     mkdir -p $THIS_DIR/data/$case
     if [ $RUN -eq 1 ]; then
-        args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=1"
+        args="${THIS_DIR}/${FILE} --case=$case --log2p=${LOG2P[$i]} $args_cases --run=1"
         run_profiling
     fi
-    args="${THIS_DIR}/profile.jl --case=$case --log2p=${LOG2P[$i]} $args_cases --run=0"
+    args="${THIS_DIR}/${FILE} --case=$case --log2p=${LOG2P[$i]} $args_cases --run=0"
     run_postprocessing
 done
 
