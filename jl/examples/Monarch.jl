@@ -22,7 +22,7 @@ function (l::NewtonLocator{T})(x,t) where T
     # Grid search for uv within bounds
     @inline dis2(uv) = (q=x-l.surf(uv,t); q'*q)
     uv = first(l.lims); d = dis2(uv)
-    for uvᵢ in LinRange(l.lims...,128)
+    for uvᵢ in LinRange(l.lims...,64)
         dᵢ = dis2(uvᵢ)
         dᵢ<d && (uv=uvᵢ; d=dᵢ)
     end
@@ -51,14 +51,19 @@ function PlanarParametricBody(curve,lims::Tuple;T=Float32,map=(x,t)->x)
 end
 
 function ParametricBodies.surf_props(body::PlanarParametricBody,x::SVector{3},t;ϵ=1)
-    # Get properties on ζ=0 plane
-    ξ = body.map(x,t)
-    d,n,_ = ParametricBodies.surf_props(body.body,SA[ξ[1],ξ[2]],t)
+    # Get point and thickness offset
+    ξ = body.map(x,t); thk = eltype(ξ)(√3/2+ϵ)
 
-    # Add out of plane contribution & thickness
-    p = SA[max(d,0)*n[1],max(d,0)*n[2],ξ[3]]
-    n =  p/(eps(d)+√(p'*p))
-    thk = typeof(d)(√3/2+ϵ)
+    # Get vector to point
+    if body.scale*abs(ξ[3])<2thk # might be close to planar body
+        d,n,_ = ParametricBodies.surf_props(body.body,SA[ξ[1],ξ[2]],t)
+        p = SA[max(d,0)*n[1],max(d,0)*n[2],ξ[3]]
+    else
+        p = SA[0,0,ξ[3]] # simple planar approximation
+    end
+
+    # return scaled distance and normal
+    n = p/(eps(eltype(p))+√(p'*p))
     return body.scale*p'*n-thk,n
 end
 using ForwardDiff
@@ -112,8 +117,10 @@ end
 
 begin
     # Define geometry and motion on CPU
-    sim = monarch(mem=CuArray);
-    sim_step!(sim,4);
+    # sim = monarch(mem=CuArray); # figures for paper
+    # sim_step!(sim,4);
+    sim = monarch(L=16,Re=250,mem=CuArray);  # closer to real-time
+    sim_step!(sim,0.1);
 
     # Create CPU buffer arrays for geometry flow viz 
     a = sim.flow.σ
@@ -130,9 +137,12 @@ begin
     fig
 end
 
-foreach(1:6) do frame
-    sim_step!(sim,sim_time(sim)+1);
+# foreach(1:6) do frame
+#     sim_step!(sim,sim_time(sim)+1);
+foreach(1:100) do frame
+    println(frame)
+    sim_step!(sim,sim_time(sim)+0.1);
     geom[] = geom!(md,d,sim);
     ω[] = ω!(md,d,sim);
-    save("Butterfly_$frame.png",fig)
+    # save("Butterfly_$frame.png",fig)
 end
