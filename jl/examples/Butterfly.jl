@@ -1,8 +1,5 @@
-using CUDA
-using GLMakie, Meshing, GeometryBasics
-using WaterLily, StaticArrays
+using CUDA,WaterLily, StaticArrays
 using ParametricBodies
-Makie.inline!(false)
 CUDA.allowscalar(false)
 
 # Define simple NewtonLocator
@@ -77,28 +74,6 @@ function WaterLily.measure(body::PlanarParametricBody,x::SVector{3},t)
     return (d,dξdx\n/body.scale,dξdx\dξdt)
 end
 
-# Plotting functions
-function geom!(md,d,sim,t=WaterLily.time(sim))
-    a = sim.flow.σ
-    WaterLily.measure_sdf!(a,sim.body,t)
-    copyto!(d,a[inside(a)]) # copy to CPU
-    mirrorto!(md,d)         # mirror
-    normal_mesh(GeometryBasics.Mesh(md,Meshing.MarchingCubes(),origin=Vec(0,0,0),widths=size(md)))
-end
-
-function ω!(md,d,sim)
-    a,dt = sim.flow.σ,sim.L/sim.U
-    @inside a[I] = WaterLily.ω_mag(I,sim.flow.u)*dt
-    copyto!(d,a[inside(a)]) # copy to CPU
-    mirrorto!(md,d)         # mirror
-end
-
-function mirrorto!(a,b)
-    n = size(b,2)
-    a[:,n+1:2n,:].=b
-    a[:,reverse(1:n),:].=b
-    return a
-end
 WaterLily.loc(i,I::CartesianIndex{N},T=Float32) where N = SVector{N,T}(I.I .- 1.5 .- 0.5 .* δ(i,I).I)
 
 # Define simulation
@@ -113,6 +88,14 @@ function monarch(;L=32,U=1,Re=500,T=Float32,mem=Array)
     end
     body=PlanarParametricBody(planform,(0,1);map)
     Simulation((3L,2L,4L),(0.2,0.,-0.2),L;U,ν=U*L/Re,body,T,mem)
+end
+
+include("ThreeD_plots.jl")
+function mirrorto!(a,b)
+    n = size(b,2)
+    a[:,n+1:2n,:].=b
+    a[:,reverse(1:n),:].=b
+    return a
 end
 
 begin
