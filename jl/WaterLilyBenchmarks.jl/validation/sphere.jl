@@ -140,10 +140,10 @@ time_max = 400.0 # in CTU
 stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
-L = (8,2,2) # domain size in D
-center = SA[2,1,1]
+L = (8,4,4) # domain size in D # (8,2,2)
+center = SA[2,2,2]
 DD = 1 # factor multiplying D: DD*2^p
-u_probe_loc = (4,1.5,1.5) # in D
+u_probe_loc = (4,2.5,2.5) # in D
 datadir = "data/sphere/"
 fname_output = "meanflow"
 verbose = true
@@ -180,7 +180,7 @@ function main()
         fk = fftfreq(length(t_interp), 1/sampling_rate) |> fftshift
         fk_pos = fk[fk .> 0]
         F = F[fk .> 0]
-        St = fk_pos[argmax(F)]
+        St = fk_pos[argmax(F.*fk_pos)]
         println("▷ St = "*@sprintf("%.4f", St))
         if _plot
             fft_plot = plot(fk_pos, F, xaxis=:log, yaxis=:log, linewidth=2)
