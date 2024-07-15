@@ -27,3 +27,4 @@ validation/data/
 *.pvd
 
 run/
+test/
