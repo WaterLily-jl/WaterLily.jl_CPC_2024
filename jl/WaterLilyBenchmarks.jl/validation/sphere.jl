@@ -93,18 +93,19 @@ function read_forces(fname::String; dir="data/")
     return obj["force"], obj["u_probe"], obj["time"]
 end
 
-function run_sim(D, backend; L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
+function run_sim(D, backend; L=(8,4,4), center=SA[2,2,2], u_probe_loc=(3.5,2.5,2.5) , Re=3700, T=Float32, restart=false)
     sim = sphere(D, backend; L, center, Re, T)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
     u_probe_loc_n = Int.(u_probe_loc .* sim.L)
     while sim_time(sim) < time_max
-        sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
+        sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=false)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
         push!(u_probe, view(sim.flow.u,u_probe_loc_n...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
-        verbose && println("Cd = ",round(force[end][1],digits=4))
+        cd = round(force[end][1],digits=4)
+        verbose && println("tU/D = $(time[end]); Cd = $cd")
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
             verbose && println("Writing force and probe values")
             jldsave(datadir*"force_D$D.jld2"; force=force, time=time, u_probe=u_probe)
@@ -140,10 +141,10 @@ time_max = 400.0 # in CTU
 stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
-Ds = [88,128,192] # diameter resolution
-L = (8,4,4) # domain size in D # (8,2,2)
-center = SA[2,2,2]
-u_probe_loc = (3.5,2.5,2.5) # in D
+Ds = [88,128,168] # diameter resolution
+L = (7,3,3) # domain size in D # (7,3,3)
+center = SA[1.5,1.5,1.5]
+u_probe_loc = (5.0,2.0,2.0) # in D
 datadir = "data/sphere/"
 fname_output = "meanflow"
 verbose = true
@@ -155,7 +156,7 @@ function main()
     for D in Ds
         println("Running D = $D")
         if run == 1
-            _, meanflow, force = run_sim(D, backend; L, center, Re, T)
+            _, meanflow, force = run_sim(D, backend; L, center, u_probe_loc, Re, T)
         end
         # postproc forces
         t_init, sampling_rate = stats_init, 0.1

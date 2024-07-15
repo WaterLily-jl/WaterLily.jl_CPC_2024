@@ -9,7 +9,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:1
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 
 ml load julia
 export JULIA_DEPOT_PATH="/home/bsc/bsc021850/.julia-acc"
