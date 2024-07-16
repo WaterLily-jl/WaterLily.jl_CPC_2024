@@ -1,6 +1,13 @@
 using CUDA,WaterLily, StaticArrays
 CUDA.allowscalar(false)
 include("PlanarBodies.jl")
+include("ThreeD_plots.jl")
+function mirrorto!(a,b)
+    n = size(b,2)
+    a[:,n+1:2n,:].=b
+    a[:,reverse(1:n),:].=b
+    return a
+end
 
 # Define simulation
 function monarch(;L=32,U=1,Re=500,T=Float32,mem=Array)
@@ -12,23 +19,15 @@ function monarch(;L=32,U=1,Re=500,T=Float32,mem=Array)
         Rx = SA[1 0 0; 0 cos(θ) sin(θ); 0 -sin(θ) cos(θ)]
         Rx*100*(x/L-SA[0.75,0.1,1.5])
     end
-    body=PlanarParametricBody(planform,(0,1);map)
+    body=PlanarParametricBody(planform,(0,1);map,mem)
     Simulation((3L,2L,4L),(0.2,0.,-0.2),L;U,ν=U*L/Re,body,T,mem)
-end
-
-include("ThreeD_plots.jl")
-function mirrorto!(a,b)
-    n = size(b,2)
-    a[:,n+1:2n,:].=b
-    a[:,reverse(1:n),:].=b
-    return a
 end
 
 begin
     # Define geometry and motion on CPU
     # sim = monarch(mem=CuArray); # figures for paper
     # sim_step!(sim,4);
-    sim = monarch(L=16,Re=250,mem=CuArray);  # closer to real-time
+    sim = monarch(L=24,Re=250,mem=CuArray);  # closer to real-time
     sim_step!(sim,0.1);
 
     # Create CPU buffer arrays for geometry flow viz 
@@ -50,7 +49,7 @@ end
 #     sim_step!(sim,sim_time(sim)+1);
 foreach(1:100) do frame
     println(frame)
-    sim_step!(sim,sim_time(sim)+0.1);
+    sim_step!(sim,sim_time(sim)+0.05);
     geom[] = geom!(md,d,sim);
     ω[] = ω!(md,d,sim);
     # save("Butterfly_$frame.png",fig)

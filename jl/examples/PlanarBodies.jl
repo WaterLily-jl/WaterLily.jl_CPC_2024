@@ -1,31 +1,4 @@
 using ParametricBodies
-# Define simple NewtonLocator
-struct NewtonLocator{T,F<:Function,G<:Function} <: AbstractLocator
-    refine::F
-    surf::G
-    lims::NTuple{2,T} 
-    scale::T
-end
-function NewtonLocator(curve::Function,lims::NTuple{2},scale=1)
-    T = promote_type(eltype(lims),typeof(scale),Float32) # Need a floating point
-    f = ParametricBodies.refine(curve,T.(lims),curve(first(lims),0)≈curve(last(lims),0))
-    NewtonLocator(f,curve,T.(lims),T(scale))
-end
-ParametricBodies.notC¹(l::NewtonLocator,uv) = any(uv.≈l.lims)
-function (l::NewtonLocator{T})(x,t) where T
-    # Grid search for uv within bounds
-    @inline dis2(uv) = (q=x-l.surf(uv,t); q'*q)
-    uv = first(l.lims); d = dis2(uv)
-    for uvᵢ in LinRange(l.lims...,64)
-        dᵢ = dis2(uvᵢ)
-        dᵢ<d && (uv=uvᵢ; d=dᵢ)
-    end
-    d*l.scale^2>100 && return uv
-
-    # If close, refine estimate with two Newton steps
-    uv = l.refine(x,uv,t)
-    return l.refine(x,uv,t)
-end
 
 # Define struct for a planar ParametricBody
 struct PlanarParametricBody{T,P<:ParametricBody,F<:Function} <: AbstractParametricBody
@@ -33,16 +6,19 @@ struct PlanarParametricBody{T,P<:ParametricBody,F<:Function} <: AbstractParametr
     map::F
     scale::T
 end
-function PlanarParametricBody(curve,lims::Tuple;T=Float32,map=(x,t)->x)
+function PlanarParametricBody(curve,lims::Tuple;T=Float32,map=(x,t)->x,mem=Array)
     # Wrap in type safe functions (GPUs are picky)
     wcurve(u::U,t::T) where {U,T} = SVector{2,promote_type(U,T)}(curve(u,t))
     wmap(x::SVector{n,X},t::T) where {n,X,T} = SVector{n,promote_type(X,T)}(map(x,t))
 
     scale = T(ParametricBodies.get_scale(map,SA{T}[0,0,0]))
-    locate = NewtonLocator(wcurve,T.(lims),scale)
+    locate = HashedLocator(wcurve,T.(lims);step=inv(scale),T,mem)
     body = ParametricBody(wcurve,locate)
     PlanarParametricBody(body,wmap,scale)
 end
+
+using Adapt
+Adapt.adapt_structure(to, x::PlanarParametricBody) = PlanarParametricBody(adapt(to,x.body),x.map,x.scale)
 
 function ParametricBodies.surf_props(body::PlanarParametricBody,x::SVector{3},t;ϵ=1)
     # Get point and thickness offset
