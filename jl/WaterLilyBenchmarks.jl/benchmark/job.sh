@@ -18,7 +18,7 @@ export WATERLILY_DIR="/gpfs/projects/bsc21/bsc021850/WaterLily/WaterLily.jl"
 
 sh benchmark.sh -b "Array CuArray" \
 	-t "1 2 4 8 16" \
-	-c "tgv sphere cylinder donut" \
-	-p "6,7,8,9 3,4,5,6 4,5,6,7 5,6,7,8" \
-	-s "100 100 100 100" \
-	-ft "Float32 Float32 Float32 Float32"
+	-c "tgv sphere cylinder" \
+	-p "6,7,8,9 3,4,5,6 4,5,6,7" \
+	-s "100 100 100" \
+	-ft "Float32 Float32 Float32"

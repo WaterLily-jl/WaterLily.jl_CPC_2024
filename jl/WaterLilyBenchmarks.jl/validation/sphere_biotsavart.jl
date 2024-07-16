@@ -22,8 +22,8 @@ Plots.default(
     labelfontsize = 14,
 )
 
-function sphere(p, backend; DD=1, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
-    D = DD*2^p; U = 1; ν = U*D/Re
+function sphere(D, backend; L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
+    U = 1; ν = U*D/Re
     body = AutoBody((x,t)-> √sum(abs2, x .- (center .* D)) - D/2)
     Simulation(L.*D, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
 end
@@ -107,14 +107,13 @@ function sim_step_biotsavart!(sim::Simulation,ω;remeasure=true)
     biot_mom_step!(sim.flow,sim.pois,ω)
 end
 
-function run_sim(p, backend; DD=3, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
-    sim = sphere(p, backend; DD, L, center, Re, T)
+function run_sim(D, backend; L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
+    sim = sphere(D, backend; L, center, Re, T)
     ω = ntuple(i->MLArray(sim.flow.σ),3)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
     u_probe_loc_n = Int.(u_probe_loc .* sim.L)
     while sim_time(sim) < time_max
-        # sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         sim_step_biotsavart!(sim, ω, sim_time(sim)+stats_interval; remeasure=false, verbose=verbose)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
@@ -123,7 +122,7 @@ function run_sim(p, backend; DD=3, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float
         verbose && println("Cd = ",round(force[end][1],digits=4))
         if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
             verbose && println("Writing force and probe values")
-            jldsave(datadir*"force_p$p.jld2"; force=force, time=time, u_probe=u_probe)
+            jldsave(datadir*"force_D$D.jld2"; force=force, time=time, u_probe=u_probe)
         end
         # Mean flow stats
         if stats && sim_time(sim) > stats_init
@@ -132,15 +131,15 @@ function run_sim(p, backend; DD=3, L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float
             update!(meanflow, sim.flow; stats_turb=stats_turb)
             if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
                 verbose && println("Writing stats")
-                write!(fname_output*"_p$p", meanflow; dir=datadir)
+                write!(fname_output*"_D$D", meanflow; dir=datadir)
             end
         end
     end
     verbose && println("Writing force and probe values")
-    jldsave(datadir*"force_p$p.jld2"; force=force, u_probe=u_probe, time=time)
+    jldsave(datadir*"force_D$D.jld2"; force=force, u_probe=u_probe, time=time)
     verbose && println("Writing stats")
-    write!(fname_output*"_p$p", meanflow; dir=datadir)
-    wr = vtkWriter("flow_p$p"; dir=datadir)
+    write!(fname_output*"_D$D", meanflow; dir=datadir)
+    wr = vtkWriter("flow_D$D"; dir=datadir)
     WaterLily.write!(wr, sim)
     close(wr)
     println("Done!")
@@ -150,18 +149,16 @@ end
 backend = CuArray
 T = Float32
 Re = 3700
-# ps = [4,5,6]
-ps = [5]
 stats = true
 stats_turb = false
 time_max = 400.0 # in CTU
 stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
-L = (5,2,2) # domain size in D
-center = SA[2,1,1] # in D
-DD = 3 # factor multiplying D: DD*2^p
-u_probe_loc = (4,1.5,1.5) # in D
+Ds = [128] # diameter resolution
+L = (3,2,2) # domain size in D
+center = SA[1,1,1] # in D
+u_probe_loc = (2.5,1.5,1.5) # in D
 datadir = "data/sphere_biotsavart/"
 fname_output = "meanflow"
 verbose = true
@@ -170,14 +167,14 @@ _plot = true
 
 function main()
     run == 1 && mkpath(datadir)
-    for p in ps
-        println("Running p = $p")
+    for D in Ds
+        println("Running D = $D")
         if run == 1
-            _, meanflow, force = run_sim(p, backend; DD, L, center, Re, T)
+            _, meanflow, force = run_sim(D, backend; L, center, Re, T)
         end
         # postproc forces
         t_init, sampling_rate = stats_init, 0.1
-        force, u_probe, t = read_forces("force_p$p.jld2"; dir=datadir)
+        force, u_probe, t = read_forces("force_D$D.jld2"; dir=datadir)
         force = mapreduce(permutedims, vcat, force)
         fx, fy, fz = force[:,1], force[:,2], force[:,3]
         idx = t .> t_init
@@ -186,9 +183,9 @@ function main()
         println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
         println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
         if _plot
-            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*(DD*2^p))/1e6)*" M")
+            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
             plot!(CD_plot, xlabel=L"$tU/D$", ylabel=L"$-C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
-            savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_CD.pdf")
+            savefig(string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
         end
 
         # postproc St
@@ -198,13 +195,13 @@ function main()
         fk = fftfreq(length(t_interp), 1/sampling_rate) |> fftshift
         fk_pos = fk[fk .> 0]
         F = F[fk .> 0]
-        St = fk_pos[argmax(F)]
+        St = fk_pos[argmax(F.*fk_pos)]
         println("▷ St = "*@sprintf("%.4f", St))
         if _plot
             fft_plot = plot(fk_pos, F, xaxis=:log, yaxis=:log, linewidth=2)
             plot!(fft_plot, xlabel=L"$fD/U$", ylabel=L"$PS(u)$", framestyle=:box, grid=true,
                 size=(600, 600), xlims=(fk_pos[1], fk_pos[end]))
-            savefig(string(@__DIR__) * "../../../../tex/img/sphere_p$(p)_St.pdf")
+            savefig(string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_St.pdf")
         end
     end
 end
