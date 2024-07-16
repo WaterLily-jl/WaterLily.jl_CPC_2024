@@ -93,16 +93,16 @@ function read_forces(fname::String; dir="data/")
     return obj["force"], obj["u_probe"], obj["time"]
 end
 
-function run_sim(D, backend; L=(8,4,4), center=SA[2,2,2], u_probe_loc=(3.5,2.5,2.5) , Re=3700, T=Float32, restart=false)
+function run_sim(D, backend; L=(7,3,3), center=SA[1.5,1.5,1.5], u_probe_loc=(4.5,2.1,1.5), u_probe_component=2, Re=3700, T=Float32, restart=false)
     sim = sphere(D, backend; L, center, Re, T)
     meanflow = MeanFlow(sim.flow)
     force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
-    u_probe_loc_n = Int.(u_probe_loc .* sim.L)
+    u_probe_loc_n = @. (u_probe_loc * sim.L) |> floor |> Int
     while sim_time(sim) < time_max
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=false)
         # Force stats
         push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
-        push!(u_probe, view(sim.flow.u,u_probe_loc_n...,1) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
+        push!(u_probe, view(sim.flow.u,u_probe_loc_n...,u_probe_component) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
         push!(time, sim_time(sim))
         cd = round(force[end][1],digits=4)
         verbose && println("tU/D = $(time[end]); Cd = $cd")
@@ -142,21 +142,26 @@ stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
 Ds = [88,128,168] # diameter resolution
+# Ds = [88] # diameter resolution
 L = (7,3,3) # domain size in D # (7,3,3)
 center = SA[1.5,1.5,1.5]
-u_probe_loc = (5.0,2.0,2.0) # in D
+u_probe_loc = (4.5,2.1,1.5) # in D
+u_probe_component = 2
 datadir = "data/sphere/"
+# datadir = "data/sphere_new/"
 fname_output = "meanflow"
 verbose = true
 run = 1 # 0: postproc, 1: run
+# run = 0 # 0: postproc, 1: run
 _plot = true
 
 function main()
     run == 1 && mkpath(datadir)
+    p_cd = plot()
     for D in Ds
         println("Running D = $D")
         if run == 1
-            _, meanflow, force = run_sim(D, backend; L, center, u_probe_loc, Re, T)
+            _, meanflow, force = run_sim(D, backend; L, center, u_probe_loc, u_probe_component, Re, T)
         end
         # postproc forces
         t_init, sampling_rate = stats_init, 0.1
@@ -169,9 +174,14 @@ function main()
         println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
         println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
         if _plot
-            CD_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
-            plot!(CD_plot, xlabel=L"$tU/D$", ylabel=L"$-C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
-            savefig(string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
+            scatter!(p_cd, [D], [-CD_mean], grid=true, ms=10, ma=1, ylims=(0.25,0.4501), xlims=(80,176), xticks=Ds,
+                xlabel=L"$D$", lw=0, framestyle=:box, size=(600, 600), legend=:bottomright, color=:black,
+                legendfontsize=14, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
+                ylabel=L"$\overline{C_D}$", label=D==168 ? "Present" : ""
+            )
+            cd_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
+            plot!(cd_plot, xlabel=L"$tU/D$", ylabel=L"$C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
+            savefig(cd_plot, string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
         end
 
         # postproc St
@@ -190,6 +200,9 @@ function main()
             savefig(string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_St.pdf")
         end
     end
+    hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")
+    hline!(p_cd, [0.355], linestyle=:dashdot, color=:cyan, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
+    savefig(p_cd, string(@__DIR__) * "../../../../tex/img/sphere_validation.pdf")
 end
 
 main()
