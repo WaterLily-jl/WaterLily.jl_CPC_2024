@@ -38,6 +38,9 @@
 \usepackage{hyperref}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{inconsolata}
+\usepackage{makecell}
+\usepackage{jlcode}
 
 \hypersetup{
 	unicode=true,
@@ -51,6 +54,12 @@
 	urlcolor=blue,
 	breaklinks=false,
 }
+\renewcommand\theadalign{cl}
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[4pt]}
+% \renewcommand\cellgape{\Gape[4pt]}
+\renewcommand{\cellalign}{tl}
+
 %% The lineno packages adds line numbers. Start line numbering with
 %% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
 %% for the whole article with \linenumbers after \end{frontmatter}.
@@ -98,7 +107,7 @@
 \journal{Computer Physics Communications}
 
 
-\newcommand\WaterLily[0]{\textsc{WaterLily}~}
+\newcommand\WaterLily[0]{\texttt{WaterLily.jl}~}
 
 \begin{document}
 
@@ -125,7 +134,7 @@
 %% \address{Address\fnref{label3}}
 %% \fntext[label3]{}
 
-\title{WaterLily.jl: A differentiable Julia solver to simulate incompressible fluid flow and dynamic bodies with heterogeneous execution}
+\title{WaterLily.jl: A differentiable and backend-agnostic Julia solver to simulate incompressible fluid flow and dynamic bodies}
 
 %% use optional labels to link authors explicitly to addresses:
 %% \author[label1,label2]{<author name>}
@@ -152,15 +161,11 @@
 % For files larger than 1Gb, if difficulties are encountered during upload the author should contact the Technical Editor at cpc.mendeley@gmail.com.
 
 \begin{abstract}
-Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages.
-WaterLily.jl is an open-source incompressible viscous flow solver written in the Julia language.
-The small code base is multidimensional, multi-platform and backend-agnostic (serial CPU, multithreaded, \& GPU execution).
-The computational time per time step scales linearly with the number of degrees of freedom on CPUs, and we see up to a 200x speed-up using CUDA kernels. This leads to comparable performance with Fortran solvers on many research-scale problems opening up exciting possible future applications on the cutting edge of machine-learning research.
-% The simulator is differentiable and uses automatic-differentiation internally to immerse solid geometries and optimize the pressure solver.
+Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages. WaterLily.jl is an open-source incompressible viscous flow solver written in the Julia language. Solid boundaries are considered through an immersed boundary method that allows to simulate flow past complex geometries with arbitrary motions. The small code base is multidimensional, multi-platform and backend-agnostic (serial CPU, multi-threaded, and GPU execution). Additionally, the dynamically typed language allows the solver to be fully differentiable using automatic differentiation. The computational time per time step scales linearly with the number of degrees of freedom (DOF) on CPUs, and we see up to a 200x speed-up using CUDA kernels resulting in a cost of 1.44 nanoseconds per DOF and time step. This leads to comparable performance with Fortran solvers on many research-scale problems opening up exciting possible future applications on the cutting edge of machine-learning research.
 \end{abstract}
 
 \begin{keyword}
-heterogeneous programming; Cartesian-grid methods; Julia; GPU
+computational fluid dynamics; heterogeneous programming; Cartesian-grid methods; Julia; GPU
 \end{keyword}
 
 \end{frontmatter}
@@ -180,9 +185,9 @@ heterogeneous programming; Cartesian-grid methods; Julia; GPU
 \\
 \begin{small}
 \noindent
-{\em Program Title:} WaterLily.jl \\
+{\em Program Title:} \WaterLily \\
 {\em CPC Library link to program files:} (to be added by Technical Editor) \\
-{\em Developer's repository link:} https://github.com/weymouth/WaterLily.jl \\
+{\em Developer's repository link:} \href{https://github.com/WaterLily-jl/WaterLily.jl}{\texttt{https://github.com/WaterLily-jl/WaterLily.jl}} \\
 {\em Code Ocean capsule:} (to be added by Technical Editor)\\
 {\em Licensing provisions(please choose one):} MIT \\
 {\em Programming language:} Julia \\
@@ -217,31 +222,31 @@ heterogeneous programming; Cartesian-grid methods; Julia; GPU
 
 \section{Introduction}
 
-During the last decade, the computational fluid dynamics (CFD) community has embraced the surge of machine learning (ML) and the new developments in hardware architecture, such as general-purpose GPUs. Hence, classic CFD solvers based on low-level programming languages (C, Fortran) and CPU memory-distributed execution are now adapted to accommodate these new tools. On one hand, the integration of high-level ML libraries and low-level CFD solvers is not straight-forward, aka. the two-language problem \cite{Churavy2022}. When deploying a ML model online with the CFD solver, data exchange is often performed at disk level, significantly slowing down the overall runtime because of disk read/write operations. An improved way to exchange data is performed through memory, either using Unix sockets \cite{Rabault2019, Font2021}, message-passing interface (MPI) \cite{Guastoni2023}, or an in-memory distributed database \cite{Kurz2022,Font2024}, which increases the software complexity. On the other hand, porting classic CFD solvers to GPU is also a non-trivial task which often requires the input and expertise of GPU vendors \cite{Romero2022}. Still, the CFD community has been an active asset in this transition, and it currently offers a rich variety of open-source multi-GPU solvers as summarised in table \ref{tab:solvers}.
+During the last decade, the computational fluid dynamics (CFD) community has embraced the surge of machine learning (ML) and the new developments in hardware architecture, such as general-purpose GPUs. Hence, classic CFD solvers based on low-level programming languages (C, Fortran) and CPU memory-distributed execution are now adapted to accommodate these new tools. On one hand, the integration of high-level ML libraries and low-level CFD solvers is not straight-forward, aka. the two-language problem \cite{Churavy2022}. When deploying a ML model online with the CFD solver, data exchange is often performed at disk level, significantly slowing down the overall runtime because of disk read/write operations. An improved way to exchange data is performed through memory, either using Unix sockets \cite{Rabault2019, Font2021}, message-passing interface (MPI) \cite{Guastoni2023}, or an in-memory distributed database \cite{Kurz2022,Font2024}, which increases the software complexity. On the other hand, porting classic CFD solvers to GPU is also a non-trivial task which often requires the input and expertise of GPU vendors \cite{Romero2022}. Still, the CFD community has been an active asset in this transition, and it currently offers a rich variety of open-source multi-GPU solvers as summarized in table \ref{tab:solvers}.
 
 \begin{table}[!ht]
-\hspace{-1.5cm}
-\begin{tabular}{ l  l  l  l}
+\begin{tabular}{llll}
     \hline
-    \multicolumn{1}{l}{\textbf{Name}} & \multicolumn{1}{l}{\textbf{Application}} & \multicolumn{1}{l}{\textbf{Method}} & \multicolumn{1}{l}{\textbf{Language}} \\
-    \hline\hline
+    \thead{Name} & \thead{Application} & \thead{Method} & \thead{Language} \\
+    \hline
     CANS \cite{Costa2018} & Incompressible canonical flows on Cartesian grids & FDM & Fortran/OpenACC \\
     GAL{\AE}XI \cite{Kempf2024} & Compressible flows on unstructured grids & DG & CUDA-Fortran \\
     nekRS \cite{Fischer2022} & Incompressible flows on unstructured grids & SEM & C++/OCCA \\
-    OpenSBLI \cite{Lusher2021} & Code-generation system for compressible flows on structured grids & FDM & Python + CUDA/OpenCL \\
-    PyFR \cite{Witherden2015} & Compressible flows on unstructured grids & FR & Python + C/OpenMP, CUDA, OpenCL \\
+    Oceananigans.jl \cite{Ramadhan2020} & Geophysical flows & FVM & Julia \\
+    OpenSBLI \cite{Lusher2021} & \makecell{Code-generation system for compressible flows\\ on structured grids} & FDM & \makecell{Python +\\ CUDA/OpenCL} \\
+    PyFR \cite{Witherden2015} & Compressible flows on unstructured grids & FR & \makecell{Python + C/OpenMP, \\ CUDA, OpenCL} \\
     RHEA \cite{Jofre2023} & Compressible flows on Cartesian grids & FDM & C++/OpenACC \\
-    SOD2D \cite{Gasparino2024} & Compressible/incompressible flows on unstructured grids & SEM & Fortran/OpenACC \\
-    STREAmS \cite{Bernardini2021} & Compressible canonical wall-bounded flows on Cartesian grids & FDM & CUDA-Fortran \\
+    SOD2D \cite{Gasparino2024} & \makecell{Compressible/incompressible flows on \\ unstructured grids} & SEM & Fortran/OpenACC \\
+    STREAmS \cite{Bernardini2021} & \makecell{Compressible canonical wall-bounded flows \\ on Cartesian grids} & FDM & CUDA-Fortran \\
     \hline
 \end{tabular}
-\caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FEM), discontinous Galerkin (DG), spectral element method (SEM), and flux reconstruction (FR).}\label{tab:solvers}
+\caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FEM), discontinous Galerkin (DG), spectral element method (SEM), finite volume method (FVM), and flux reconstruction (FR).}\label{tab:solvers}
 \end{table}
 
-In this context, Julia \cite{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the KernelAbstractions.jl library \cite{Churavy2023}, which enables writing heterogeneous kernels for different backends (multi-threaded CPU, NVIDIA, AMD, and others) in a single framework.
+In this context, Julia \cite{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the \texttt{KernelAbstractions.jl} library \cite{Churavy2023}, which enables writing heterogeneous kernels for different backends (multi-threaded CPU, NVIDIA, AMD, and others) in a single framework.
 Julia has been also tested in many HPC systems, and the reader is referred to \cite{Churavy2022} for a comprehensive review.
 
-In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \href{https://github.com/WaterLily-jl/WaterLily.jl}{\WaterLily}. Differently to the solvers detailed in table \ref{tab:solvers}, \WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less that 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
+In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \\ \href{https://github.com/WaterLily-jl/WaterLily.jl}{\WaterLily}. Differently to the solvers detailed in table \ref{tab:solvers}, \WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less that 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
 
 \section{Numerical methods}\label{sec:numerical_methods}
 \begin{itemize}
@@ -249,11 +254,31 @@ In this work, we introduce a new CFD solver with heterogeneous execution written
 \end{itemize}
 
 \section{Software design}\label{sec:software_design}
-\begin{itemize}
-  \item N-dimensional solver
-  \item KernelAbstractions.jl
-  \item Auto bodies
-\end{itemize}
+
+Julia’s flexible and fast programming capabilities enabled the implementation of \WaterLily to have many special features in a minimal codebase (approximately 1000 lines of code). For example, automatic differentiation (AD) is used to define all the properties of the immersed geometry from a user-defined signed-distance function and a coordinates-mapping function. Moreover, the whole solver is also differentiable based on AD. This allows solving optimization problems related to the immersed body with reduced computational cost compared to a finite-difference/sampling approach. In addition, the AD can also be used to develop accelerated data-driven GMG methods as demonstrated in \cite{Weymouth2022}.
+
+The most important Julia features for implementing the solver to run on heterogeneous backends are (i) the dynamic typing system, (ii) the meta-programming capabilities, and (iii) the rich open-source packages. Multiple-dispatch enables simple functions (such as broadcasting or reductions operations on arrays) to be written at high-level by the user, while intermediate Julia libraries, and ultimately the compiler, will specialize the code for efficient execution on a particular architecture (CPU or GPU). For more specialized tasks, \WaterLily uses Julia's meta-programming features to generate code that produces an individual kernel for the specific task. The kernel can be used to offload the computational work into a GPU, or to run it in a multi-threaded CPU environment depending on the available system architecture. As an example, the gradient of the \jlinl{n}-dimensional pressure field \jlinl{p} is applied to the velocity field \jlinl{u} as follows
+\begin{jllisting}
+for i in 1:n  # apply pressure gradient
+    @loop u[I, i] -= c[I, i] * (p[I] - p[I - ∂(i)]) over I in inside(p)
+end
+\end{jllisting}
+where \jlinl{∂(i)} is a function defining a Cartesian index step in the direction \jlinl{i}, \jlinl{c} are the coefficients in the pressure-Poisson matrix arising from the discretization scheme, and \jlinl{inside(p)} provides the range of Cartesian indices \jlinl{I} in the pressure field to loop over (excluding ghost cells). For example, if \jlinl{size(p)==(10, 10)}, then \jlinl{inside(p)} yields a range of \jlinl{CartesianIndices((2:9, 2:9))}. When applying the \jlinl{@loop} macro to this expression, the following kernel is produced based on the \texttt{KernelAbstractactions.jl} package \citep{Churavy2023}
+\begin{jllisting}
+@kernel function kern_(u, c, p, i, @Const(I0)) # automatically generated kernel
+    I = @index(Global, Cartesian)
+    I += I0
+    @fastmath @inbounds u[I, i] -= c[I, i] * (p[I] - p[I - ∂(i)])
+end
+\end{jllisting}
+which is subsequently launched with the auto-generated call
+\begin{jllisting}
+kern_(get_backend(u))(u, c, p, i, inside(p)[1] - oneunit(inside(p)[1]), ndrange=size(inside(p)))
+\end{jllisting}
+
+Note that \jlinl{@kernel}, \jlinl{@index}, \jlinl{@Const} and \jlinl{get_backend} are part of the \texttt{KernelAbstractactions.jl} API and ultimately generate the appropriate kernel based on the backend inferred by \jlinl{get_backend(u)}. Also note that a Cartesian-index based parallelization across the global memory is used, and that the \jlinl{@Const(I0)} argument passes the ghost-cell offset information into the kernel. The workgroup size for the parallelization of the range of Cartesian indices (\jlinl{ndrange}) is automatically inferred base on the size of each dimension in \jlinl{ndrange}. Moreover, the backend of the working arrays, such as \jlinl{u} or \jlinl{p}, is specified by the user through the \jlinl{mem} (for memory) keyword argument when creating a \jlinl{Simulation} object. Hence, with a simple flag, the CFD simulation can be run on a CPU or a GPU from different vendors. Currently, \WaterLily has been successfully tested on both NVIDIA and AMD GPUs. Similarly, the precision of the simulation is specified with the keyword argument \jlinl{T}, which for example can be set to \jlinl{Float32} (single) or \jlinl{Float64} (double) precision.
+
+As hinted, the main component in \WaterLily is the \jlinl{Simulation} type, which holds information about the fluid through the \jlinl{Flow} type, and the immersed body (or bodies) through the \jlinl{AutoBody} type. Hence, to set up a simulation, the user must specify the size of the Cartesian grid as well as other optional properties such as characteristic length and velocity, fluid viscosity, and type of boundary conditions (slip by default, otherwise a convective outlet or a periodic condition can be selected too). On the other hand, the \jlinl{AutoBody} type holds the signed-distance function as well as the coordinates mapping for moving boundaries. More detailed examples on how to set up a simulation are available in \S\ref{sec:applications}.
 
 \section{Benchmark and validation} \label{sec:benchmark_validation}
 \begin{itemize}
@@ -272,7 +297,6 @@ w_0 &= 0,
 where $U=1$ is the characteristic velocity and $\kappa=2\pi/L$ is the wavenumber. Similarly to \cite{Dairay2017}, we use the half-domain defined by the characteristic length as the effective computational domain, and apply symmetry boundary conditions to lower the cost of the simulation. To test different grid resolutions, we select $L=\left\{2^6,2^7,2^8,2^9\right\}$ resulting into grids of 0.26, 2.10, 16.78, and 134.22 million of degrees of freedom (DOF), respectively.
 
 With respect to the sphere case, its diameter is taken as the characteristic length, and a $16L\times6L\times6L$ domain is defined for increasing resolutions of $L=\left\{2^3,2^4,2^5,2^6\right\}$ resulting in 0.29, 2.36, 18.87, and 150.99 million DOF, respectively. For the circular cylinder, the diameter is again taken as the characteristic length in a $12L\times6L\times2L$ domain and resolutions of $L=\left\{2^4,2^5,2^6,2^7\right\}$ resulting in 0.59, 4.72, 37.75, 301.99 million DOF grids are considered. We note that the finer cylinder grid consumes 39 GB of memory using single precision, and hence can be fitted in the NVIDIA Hopper H100 64GB used for benchmarking. Both the sphere and cylinder cases are initialized with a uniform flow condition $\vec{u}_0=(U,0,0)$, slip conditions are applied on the lateral boundaries, and a convective outlet condition is applied at the downstream plane.
-
 
 \begin{figure}[!ht]
   \centering
@@ -320,7 +344,7 @@ With respect to the sphere case, its diameter is taken as the characteristic len
       \includegraphics[width=\linewidth]{img/cylinder_profile.pdf}%
     }
   \end{subfigure}
-  \caption{Kernel timings distribution for the 3rd-level grids of the different test cases. Timings are measured as the median value of the kernel execution time for 1000 time steps, noting that each kernel can be called more than once for each time step (ie. predictor-corrector scheme). We note that field ``BC!" accounts for all the following the boundary-conditions subroutines: ``BC!", ``BDIM!", ``BCTuple", ``exitBC!", where the latter is the most expensive one. Tests are conducted using single precision in an NVIDIA GeForce RTX 4060 Laptop GPU. During the tests, 99.9\% of time is spent in kernel execution while only 0.1\% is spent on device-to-host memory-copy calls (related to the pressure solver).}
+  \caption{Kernel timings distribution for the 3rd-level grids of the different test cases. Timings are measured as the median value of the kernel execution time for 1000 time steps, noting that each kernel can be called more than once for each time step (ie. predictor-corrector scheme). We note that field \texttt{BC!} accounts for all the following the boundary-conditions subroutines: \texttt{BC!}, \texttt{BDIM!}, \texttt{BCTuple}, \texttt{exitBC!}, where the latter is the most expensive one. Tests are conducted using single precision in an NVIDIA GeForce RTX 4060 Laptop GPU. During the tests, 99.9\% of time is spent in kernel execution while only 0.1\% is spent on device-to-host memory-copy calls (related to the pressure solver).}
 \label{fig:profiling}
 \end{figure}
 
@@ -332,7 +356,7 @@ With respect to the sphere case, its diameter is taken as the characteristic len
 \end{figure}
 
 \section{Sample applications}\label{sec:applications}
-Three applications are selected to demonstrate the capability of the package to analyse general fluid flows. The examples also showcase the advantages of a differentiable back-end agnostic Cartesian-grid solver.
+Three applications are selected to demonstrate the capability of the package to analyze general fluid flows. The examples also showcase the advantages of a differentiable back-end agnostic Cartesian-grid solver.
 
 \subsection{Optimized control cylinders}
 
@@ -349,7 +373,7 @@ Three applications are selected to demonstrate the capability of the package to 
     \end{subfigure}\hspace{20pt}
     \begin{subfigure}[b]{0.45\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{img/SpinOptim.png}        
+        \includegraphics[width=\linewidth]{img/SpinOptim.png}
         \caption{Optimization process}
     \end{subfigure}
     \caption{Controlled flow over a static cylinder using spinning cylinders in the wake. The small cylinder (purple) has scale spin velocity $\xi$, driving the flow to be symmetry and steady after an initial transient, as measured by the vorticity (a) and the scaled power coefficient $C_p$ (b). The net propulsive efficiency is optimized using the differentiable solver (c).}
@@ -375,7 +399,7 @@ We optimize $\hat\xi=\text{argmin}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidso
     % \includegraphics[width=0.16\linewidth,trim={90 150 70 200},clip]{img/Jelly_4.png}
     \includegraphics[width=0.24\linewidth,trim={90 150 70 200},clip]{img/Jelly_5.png}
     % \includegraphics[width=0.16\linewidth,trim={90 150 70 200},clip]{img/Jelly_6.png}
-    
+
     \caption{Flow induced by a pulsing jellyfish geometry visualized by vorticity magnitude at equally spaced intervals over a cycle.}
     \label{fig:jelly}
 \end{figure}
@@ -388,7 +412,7 @@ We optimize $\hat\xi=\text{argmin}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidso
     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_4.png}
     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_5.png}
     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_6.png}
-    
+
     \caption{Flow induced by a flapping butterfly geometry visualized by vorticity magnitude at equally spaced intervals over a cycle.}
     \label{fig:butterfly}
 \end{figure}
