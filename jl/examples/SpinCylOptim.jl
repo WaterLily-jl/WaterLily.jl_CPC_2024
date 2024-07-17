@@ -25,17 +25,35 @@ function cost(ξ,t_end=2;d_D=0.15,remeasure=false)
     sim_step!(sim,t_end;remeasure)
     -scaled_power(sim,d_D*ξ^3)
 end
-opt,points = davidson(cost,3.,8.)
+points = davidson(cost,3.,8.,tol=5e-2,verbose=true)
 
 # Plot optimization points
-using Plots
-points = filter(a->a.f<0,points) # remove drag cases
-scatter(points.x, points.f/opt.f, xlabel="ξ",ylabel="ηₚ/max(ηₚ)", ylims=(0,1.1), label=nothing,
-        zcolor = eachindex(points), markercolor=:Blues, colorbar_title="Iteration")
-savefig("SpinOptim.png")
+using Plots,LaTeXStrings
+
+Plots.default(
+    fontfamily = "Computer Modern",
+    linewidth = 1,
+    framestyle = :box,
+    grid = false,
+    left_margin = Plots.Measures.Length(:mm, 5),
+    right_margin = Plots.Measures.Length(:mm, 5),
+    bottom_margin = Plots.Measures.Length(:mm, 5),
+    top_margin = Plots.Measures.Length(:mm, 5),
+    titlefontsize = 15,
+    legendfontsize = 14,
+    colorbar_titlefontsize = 14,
+    tickfontsize = 14,
+    labelfontsize = 14,
+)
+
+points = filter(a->a.f<0,points) # remove drag cases\
+mine = palette([:cyan, :blue], 5)
+scatter(points.x, points.f/opt.f, xlabel=L"$\xi$",ylabel=L"$c_p/\max(c_p)$", ylims=(0,1.1), label=nothing,
+        zcolor = eachindex(points), markercolor=mine, colorbar_title="Iteration", size=(600,600))
+savefig("SpinOptim.pdf")
 
 # Plot the scaled power history
-# opt = (x = 6.252768481467935, f = -0.0007056811885623282, ∂ = 0.0956334509946055)
+opt = (x = 6.252768481467935, f = -0.0007056811885623282, ∂ = 0.0956334509946055)
 function history(ξ,duration=3;d_D=0.15,remeasure=false)
     sim = drag_control_sim(ξ;d_D)
     data = map(range(0,duration,300)) do tᵢ
@@ -46,11 +64,12 @@ function history(ξ,duration=3;d_D=0.15,remeasure=false)
 end
 histOpt,sim = history(opt.x);
 hist3,_ = history(3.0);
-plot(hist3,label="ξ=3",xlabel="scaled time",ylabel="scaled power")
+plot(hist3,label=L"$\xi=3$")
 scatter!(filter(a->abs(a.t-2)<3e-3,hist3),c=1,label=nothing)
-plot!(histOpt,label="ξ=6.253",ylims=(-0.4,0.1),c=2)
+plot!(histOpt,label=L"$\xi=6.253$",ylims=(-0.4,0.1),c=2)
 scatter!(filter(a->abs(a.t-2)<3e-3,histOpt),c=2,label=nothing)
-savefig("SpinCylHist.png")
+plot!(xlabel=L"$tU/D$",ylabel=L"$c_p$",size=(600,600))
+savefig("SpinCylHist.pdf")
 
 # Plot the flow & circles
 include("TwoD_plots.jl")
@@ -61,4 +80,4 @@ R,C = sim.L÷2, 2sim.L;
 r = 0.15R; c = C+(1.1R+r)*exp(im*π/3);
 addbody(circle(R,C,π)...,c=:lightgreen)
 addbody(circle(r,c)...,c=:mediumorchid)
-savefig("SpinCylFlood.png")
+savefig("SpinCylFlood.pdf")
