@@ -249,9 +249,21 @@ Julia has been also tested in many HPC systems, and the reader is referred to \c
 In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \\ \href{https://github.com/WaterLily-jl/WaterLily.jl}{\WaterLily}. Differently to the solvers detailed in table \ref{tab:solvers}, \WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less that 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
 
 \section{Numerical methods}\label{sec:numerical_methods}
-\begin{itemize}
-  \item FV, BDIM, GMG
-\end{itemize}
+WaterLily uses Boundary Data Immersion Method (BDIM) to simulate the fluid flow around immersed bodies \cite{Weymouth2011,Maertens2014,Lauber2022}. The preceding references give the precise mathematical formulation, as well as detailed validation of the immersed-boundary method's accuracy. To summarise the approach, the momentum equation defined over the fluid domain
+\begin{equation}
+    \mathcal{\dot F}:\ \dot u_i = -p_{,i} - (u_i u_j)_{,j}+\nu u_{i,jj} \quad \forall i,j \in 1\ldots n
+\end{equation}
+is integrated in time and convolved with a prescribed body velocity defined over the solid domain 
+\begin{equation}
+    \mathcal{B}:\ u_i = V_i \quad \forall i \in 1\ldots n
+\end{equation}
+resulting in a single meta-equation valid over the whole space. In these equations, $u_i$ are the velocity components in a $n$-dimensional flow, $p$ is the pressure scaled by the fluid density, $\nu$ is the fluid viscosity, $V_i$ is the body velocity, indices after commas indicate spacial derivatives, and summation is used over repeated indices. As with these equations, WaterLily can be applied to simulations of any number of dimensions $n$, although we typically restrict applications to 2D and 3D flows.
+
+The immersed-boundary thickness $\epsilon$ defines the region directly affected by the prescribed body velocities, but the flow inside this region still obeys the fluid dynamic equations with second-order accuracy \cite{Maertens2014}. The transition between these two regions is defined by the properties of the immersed surface, specifically the signed-distance $d$ \& normal $\hat n$ from any point in space to the closest surface point. This, along with the body velocity $V_i$, defines the local meta-equation.
+
+WaterLily implements the governing equation using a finite-volume approach on a uniform Cartesian grid with staggered velocity-pressure variable placement. Since all grid cells are identical, no grid information is stored. Second-order central differences are used for the pressure and diffusion terms, while a flux-limited Quick scheme is used on the convective term. While explicitly turbulence models have been used for specific projects, the core WaterLily solver is model-free, making it an implicit Large Eddy Simulation (iLES) solver \cite{Margolin2006}.
+
+Finally, the momentum equation is integrated in time using with an explicit predictor-corrector update scheme \cite{Lauber2022}. The velocity is restricted to be incompressible (divergence-free $u_{i,i}=0$) using a pressure projection scheme at each step. The resulting Poisson equation has spatially varying coefficient in the presence of immersed boundaries, and is solved using a Geometric Multi-Grid method \cite{Weymouth2022}. The time step is adapted automatically based on the maximum CFL number in the domain. 
 
 \section{Software design}\label{sec:software_design}
 
@@ -362,31 +374,54 @@ Three applications are selected to demonstrate the capability of the package to 
 
 \begin{figure}
     \centering
-    \begin{subfigure}[t]{0.9\linewidth}
+    \begin{subfigure}[t]{0.8\linewidth}
         \centering
-        \includegraphics[width=\linewidth,trim={50 70 20 200},clip]{img/SpinCylFlood.pdf}
+        \includegraphics[width=\linewidth,trim={50 70 20 210},clip]{img/SpinCylFlood.pdf}
+        \vspace{-1cm}
         \caption{Vorticity field}
     \end{subfigure}
-    \begin{subfigure}[b]{0.45\linewidth}
+    \begin{subfigure}[b]{0.35\linewidth}
         \includegraphics[width=\linewidth]{img/SpinCylHist.pdf}
+        \vspace{-1cm}
         \caption{Scaled power history}
     \end{subfigure}\hspace{20pt}
-    \begin{subfigure}[b]{0.45\linewidth}
+    \begin{subfigure}[b]{0.35\linewidth}
         \centering
         \includegraphics[width=\linewidth]{img/SpinOptim.pdf}
+        \vspace{-1cm}
         \caption{Optimization process}
     \end{subfigure}
-    \caption{Controlled flow over a static cylinder using spinning cylinders in the wake. The small cylinder (purple) has scale spin velocity $\xi$, driving the flow to be symmetry and steady after an initial transient, as measured by the vorticity (a) and the scaled power coefficient $C_p$ (b). The net propulsive efficiency is optimized using the differentiable solver (c).}
+    \caption{Controlled flow over a static cylinder using spinning cylinders in the wake. The small cylinder (purple) has scale spin velocity $\xi$, driving the flow to be symmetry and steady after an initial transient, as measured by the vorticity (a) and the scaled power coefficient $C_P$ (b). The net propulsive efficiency is optimized using the differentiable solver (c).}
     \label{fig:spinning_circle}
 \end{figure}
 
-The first example will be optimizing the controlled 2D flow around a circle using a pair of small spinning circles placed 120 degrees relative to the inflow direction, Fig~\ref{fig:spinning_circle}a. Experimental and numerical studies of this system have show the capability of the spinning cylinders to control the flow over the large circle [ref,ref], establishing a steady symmetric wake, reducing the system drag and even producing a net thrust as the rotation rate is increased.
+The first example will be optimizing the controlled 2D flow around a circle using a pair of small spinning circles placed 120 degrees relative to the inflow direction, Fig~\ref{fig:spinning_circle}a. Experimental and numerical studies of this system have show the capability of the spinning cylinders to control the flow over the large circle \cite{schulmeister2017}, establishing a steady symmetric wake, reducing the system drag and even producing a net thrust as the rotation rate is increased.
 
-The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=c/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain. WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions, allowing the two bodies to be added to the simulation trivially.
+The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=\frac 12 d\Omega/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain. 
 
-We use the differentiable solver to maximize the scaled propulsive power $C_P = FU/\rho dc^3$ where $F$ is the net thrust force on the system. This metric is  proportional to the propulsive efficiency since $\rho dc^3$ scales with the power required to rotate the control cylinders [ref]. The time history of $C_P$ is plotted for a few values of $\xi$ in Fig~\ref{fig:spinning_circle}b, demonstrating that only a few convective cycles are required to reach steady state, as well as the control authority of $\xi$ over the propulsive power.
+The entire differentiable simulation is defined with the simple script:
+\begin{jllisting}
+using WaterLily: norm2                   # vector length
+rot(θ) = [cos(θ) -sin(θ); sin(θ) cos(θ)] # rotation matrix
+function drag_control_sim(ξ;D=96,Re=500,d_D=0.15f0,g_D=0.05f0)
+    # set up big cylinder
+    C,R,U = [2D,0],D÷2,1
+    big = AutoBody((x,t)->norm2(x-C)-R)         # signed-distance function
+    
+    # set up small control cylinder
+    r = d_D*R; c = C+(R+r+g_D*D)*[1/2,√3/2]
+    small = AutoBody((x,t)->norm2(x)-r,         # signed-distance function
+                     (x,t)->rot(ξ*U*t/r)*(x-c)) # center and spin!
+    
+    # set up simulation
+    Simulation((6D,2D),(U,0),D;ν=U*D/Re,body=big+small,T=typeof(ξ))
+end
+\end{jllisting}
+This example demonstrates that WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions. The two circles \texttt{big} and \texttt{small} are defined with a line of code each and combined trivially with \texttt{body=big+small}. It also demonstrates using a variable $\xi$ to set the types used for the simulation. This allows easy switching between any floating point precision, but it also allows automatic differentiation to be applied to the solver as a whole by running the code with a \texttt{T=Dual} data-type holding the value and derivative simultaneously \cite{RevelsLubinPapamarkou2016}.
 
-We optimize $\hat\xi=\text{argmin}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidson's method [ref], which evaluates $C_P$ and it's derivative $\partial C_P/\partial \xi$ at points bracketing an optimum, using inverse cubic interpolation to iteratively restrict the interval. Both the value and derivative of the power are computed simultaneously using dual numbers, at a cost only 80\% larger than evaluating the function alone. Fig~\ref{fig:spinning_circle}c shows the resulting evaluation history starting with the interval $\xi=[3,8]$, leading to the optimum $\hat\xi\approx 6.25$ in a few iterations. Rates above this optimum produce more net thrust, but require excessive rotation rates to produce.
+We use the differentiable solver to maximize the scaled propulsive power $C_P = FU/\rho dc^3$ where $F$ is the net thrust force on the system. This metric is  proportional to the propulsive efficiency since $\rho dc^3$ scales with the power required to rotate the control cylinders \cite{schulmeister2017}. The time history of $C_P$ is plotted for a few values of $\xi$ in Fig~\ref{fig:spinning_circle}b, demonstrating that only a few convective cycles are required to reach steady state, as well as the control authority of $\xi$ over the propulsive power.
+
+We optimize $\hat\xi=\text{argmax}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidon's method \cite{davidon1991}, which evaluates $C_P$ and it's derivative $\partial C_P/\partial \xi$ at points bracketing an optimum, using inverse cubic interpolation to iteratively restrict the interval. Both the value and derivative of the power are computed simultaneously using dual numbers, at a cost only 80\% larger than evaluating the function alone. Fig~\ref{fig:spinning_circle}c shows the resulting evaluation history starting with the interval $\xi=[3,8]$, leading to the optimum $\hat\xi\approx 6.26$ in a few iterations. Rates above this optimum produce more net thrust, but require excessive rotation rates to produce.
 
 \subsection{Deforming and dynamic geometries}
 
@@ -418,16 +453,38 @@ We optimize $\hat\xi=\text{argmin}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidso
 \end{figure}
 The final two examples showcase the solvers ability to handle more complex geometries with ease. The first is a pulsing jellyfish-inspired geometry, and the second is a flapping butterfly-inspired geometry. Both of these cases are fast enough to simulate on a laptop GPU for live demonstrations.
 
-The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this case taking the difference of a hollow sphere with an oriented plane. This geometry is made to pulse by mapping the coordinates harmonically in the radial and transverse directions. While the geometry maintains a roughly constant solid volume throughout the pulse, small deviations are handled gracefully by the solver. Fig~\ref{fig:jelly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. Each cycle generates a strong propulsive vortex ring which breaks up as it propagates away, in qualitative agreement with experimental studies [ref].
+\begin{jllisting}
+function jelly(p=5;Re=5e2,mem=Array,U=1)
+    # Define simulation size, geometry dimensions, & viscosity
+    n = 2^p; R = 2n/3; h = 4n-2R; ν = U*R/Re
 
-The butterfly geometry is a pair of membrane wings defined using the ParametricBodies package [ref]. The wing's planform is defined by a set of planar points which are interpolated using a cubic spline. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic coordinate rotations about the "shoulder" are used to flap the wings. Fig~\ref{fig:butterfly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. The classic clap-and-fling vortex formations are observed [ref].
+    # Motion functions
+    ω = 2U/R
+    A(t) = 1 .- [1,1,0]*0.1*cos(ω*t)
+    B(t) = [0,0,1]*((cos(ω*t)-1)*R/4-h)
+    C(t) = [0,0,1]*sin(ω*t)*R/4
+
+    # Build jelly from a mapped sphere and plane
+    sphere = AutoBody((x,t)->abs(√sum(abs2,x)-R)-1, # sdf
+                      (x,t)->A(t).*x+B(t)+C(t))     # map
+    plane = AutoBody((x,t)->x[3]-h,(x,t)->x+C(t))
+    body =  sphere-plane
+
+    # Return initialized simulation
+    Simulation((n,n,4n),(0,0,-U),R;ν,body,mem,T=Float32)
+end
+\end{jllisting}
+
+The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this case taking the difference of a hollow sphere with an oriented plane. This geometry is made to pulse by mapping the coordinates harmonically in the radial and transverse directions. While the geometry maintains a roughly constant solid volume throughout the pulse, small deviations are handled gracefully by the solver. Fig~\ref{fig:jelly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. Each cycle generates a strong propulsive vortex ring which breaks up as it propagates away, in qualitative agreement with experimental studies \cite{dabiri2005}.
+
+The butterfly geometry is a pair of membrane wings defined using the ParametricBodies package \cite{WeymouthLauber2023}. The wing's planform is defined by a set of planar points which are interpolated using a cubic spline. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic coordinate rotations about the "shoulder" are used to flap the wings. Fig~\ref{fig:butterfly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. The classic clap-and-fling vortex formations are observed \cite{weis1973}.
 
 \section{Conclusions}\label{sec:conclusions}
 
 \section{Acknowledgements}\label{sec:acknowledgements}
 \begin{itemize}
     \item BSC HPC services
-    \item Dr. Lucas Gasparino
+    \item Dr. Lucas Gasparino, Valentin Churavy
 \end{itemize}
 
 \bibliographystyle{elsarticle-num}
