@@ -10,9 +10,9 @@ function mirrorto!(a,b)
 end
 
 # Define simulation
-function whale(sweep=100;L=24,U=1,Re=1e6,T=Float32,mem=Array)
-    pnts = SA{Float32}[0 40      190      200      190   170      100   0 -10 0
-            0  0 0.8sweep 0.8sweep+40 0.5sweep+70 0.5sweep+50 0.5sweep+70 100  80 0]
+function whale(s=10;L=24,U=1,Re=1e4,T=Float32,mem=CuArray)
+    pnts = SA{Float32}[0 40 190   200   190   170   100   0 -10 0
+                       0  0  8s 8s+40 5s+70 5s+50 5s+70 100  80 0]
     planform = BSplineCurve(reverse(pnts),degree=3)
     function map(x,t)
         θ,h = π/6*sin(U*t/L),1+0.5cos(U*t/L)
@@ -25,8 +25,10 @@ end
 
 begin
     # Define geometry and motion on GPU
-    sim = whale(0,mem=CuArray);  # closer to real-time
-    sim_step!(sim,0.1);
+    sim = whale(10,L=64,mem=CuArray); # resolve the vortices
+    sim_step!(sim,3);
+    # sim = whale(100,mem=CuArray);  # closer to real-time
+    # sim_step!(sim,0.1);
 
     # Create CPU buffer arrays for geometry flow viz 
     a = sim.flow.σ
@@ -35,18 +37,21 @@ begin
 
     # Set up geometry viz
     geom = geom!(md,d,sim) |> Observable;
-    fig, _, _ = GLMakie.mesh(geom, alpha=0.3, color=:fuchsia)
+    fig, ax, _ = GLMakie.mesh(geom, alpha=0.3, color=:fuchsia)
+    ax.show_axis = false
 
     # #Set up flow viz
     ω = ω!(md,d,sim) |> Observable;
-    volume!(ω, algorithm=:mip, colormap=:dense, colorrange=(1,20))
+    # volume!(ω, algorithm=:mip, colormap=:dense, colorrange=(1,15))
+    volume!(ω, algorithm=:mip, colormap=:dense, colorrange=(1,30))
     fig
 end
 
 # simulate real-time
-for frame ∈ 1:100
+for frame ∈ 5:6
     println(frame)
-    sim_step!(sim,sim_time(sim)+0.05);
+    sim_step!(sim,sim_time(sim)+1);
     geom[] = geom!(md,d,sim);
     ω[] = ω!(md,d,sim);
+    save("Whale_$frame.png",fig)
 end
