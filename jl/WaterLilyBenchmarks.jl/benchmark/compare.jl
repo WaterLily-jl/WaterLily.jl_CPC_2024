@@ -108,9 +108,9 @@ for (kk, case) in enumerate(tests_ordered)
     # Cost plot in GPU
     N = prod(tests_dets[case]["size"]) .* 2 .^ (3 .* eval(Meta.parse.(log2p_str)))
     N_str = (N./1e6) .|> x -> @sprintf("%.2f", x)
-    scatter!(p_cost, collect(1:length(log2p_str)), data_plot[:,end,2], yaxis=:log, yminorgrid=true,
-        ms=10, ma=1, ylims=(1,30),
-        label=tests_dets[case]["title"], xlabel="Grid level", lw=0, framestyle=:box, grid=:y, size=(600, 600), legend=true,
+    scatter!(p_cost, N./1e6, data_plot[:,end,2], yaxis=:log10, xaxis=:log10, yminorgrid=true, xminorgrid=true,
+        ms=10, ma=1, ylims=(1,30), xlims=(0.1,400),
+        label=tests_dets[case]["title"], xlabel="DOF [M]", lw=0, framestyle=:box, grid=:xy, size=(600, 600), legend=true,
         legendfontsize=15, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
         ylabel="Cost [ns/DOF/dt]"
     )
