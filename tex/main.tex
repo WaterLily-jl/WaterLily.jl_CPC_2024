@@ -439,22 +439,10 @@ We optimize $\hat\xi=\text{argmax}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidon
     \label{fig:jelly}
 \end{figure}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_1.png}
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_2.png}
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_3.png}
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_4.png}
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_5.png}
-    \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_6.png}
-
-    \caption{Flow induced by a flapping butterfly geometry visualized by vorticity magnitude at equally spaced intervals over a cycle.}
-    \label{fig:butterfly}
-\end{figure}
-The final two examples showcase the solvers ability to handle more complex geometries with ease. The first is a pulsing jellyfish-inspired geometry, and the second is a flapping butterfly-inspired geometry. Both of these cases are fast enough to simulate on a laptop GPU for live demonstrations.
+The final two examples showcase the solvers ability to handle more complex geometries with ease. The first is a pulsing jellyfish-inspired geometry, and the second is a whale tail-inspired geometry. Both of these cases are fast enough to simulate on a laptop GPU for live demonstrations at reduced resolution.
 
 \begin{jllisting}
-function jelly(p=5;Re=5e2,mem=Array,U=1)
+function jelly(p=5;Re=5e2,mem=CuArray,U=1)
     # Define simulation size, geometry dimensions, & viscosity
     n = 2^p; R = 2n/3; h = 4n-2R; ν = U*R/Re
 
@@ -477,7 +465,48 @@ end
 
 The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this case taking the difference of a hollow sphere with an oriented plane. This geometry is made to pulse by mapping the coordinates harmonically in the radial and transverse directions. While the geometry maintains a roughly constant solid volume throughout the pulse, small deviations are handled gracefully by the solver. Fig~\ref{fig:jelly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. Each cycle generates a strong propulsive vortex ring which breaks up as it propagates away, in qualitative agreement with experimental studies \cite{dabiri2005}.
 
-The butterfly geometry is a pair of membrane wings defined using the ParametricBodies package \cite{WeymouthLauber2023}. The wing's planform is defined by a set of planar points which are interpolated using a cubic spline. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic coordinate rotations about the "shoulder" are used to flap the wings. Fig~\ref{fig:butterfly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. The classic clap-and-fling vortex formations are observed \cite{weis1973}.
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_1.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_2.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_3.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_4.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_5.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Butterfly_6.png}
+
+%     \caption{Flow induced by a flapping butterfly geometry visualized by vorticity magnitude at equally spaced intervals over a cycle.}
+%     \label{fig:butterfly}
+% \end{figure}
+% The butterfly geometry is a pair of membrane wings defined using the ParametricBodies package \cite{WeymouthLauber2023}. The wing's planform is defined by a set of planar points which are interpolated using a cubic spline. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic coordinate rotations about the "shoulder" are used to flap the wings. Fig~\ref{fig:butterfly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. The classic clap-and-fling vortex formations are observed \cite{weis1973}.
+
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Whale_1.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Whale_2.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Whale_3.png}
+%     \includegraphics[width=0.32\linewidth,trim={90 150 70 200},clip]{img/Whale_4.png}
+
+%     \caption{Flow induced by a flapping whale tail geometry visualized by vorticity magnitude at equally spaced intervals over a cycle using cord resolution $L=96$ and sweep $s=10$.}
+%     \label{fig:whale}
+% \end{figure}
+\begin{jllisting}
+function whale(s=10;L=24,U=1,Re=1e4,T=Float32,mem=CuArray)
+    pnts = SA{Float32}[0 40 190   200   190   170   100   0 -10 0
+                       0  0  8s 8s+40 5s+70 5s+50 5s+70 100  80 0]
+    planform = BSplineCurve(reverse(pnts),degree=3)
+    function map(x,t)
+        θ,h = π/6*sin(U*t/L),1+0.5cos(U*t/L)
+        Ry = SA[cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
+        Ry*100*(x/L-SA[0.75,0,h])
+    end
+    body=PlanarParametricBody(planform,(0,1);map,mem)
+    Simulation((5L,3L,2L),(U,0,0),L;U,ν=U*L/Re,body,T,mem)
+end
+\end{jllisting}
+
+The tail is a planar membrane define using the ParametricBodies package \cite{WeymouthLauber2023}. The planform is defined by a set of points which are interpolated using a cubic spline. The sweep of the wing is adjustable with the input parameter $s$, allowing geometry parametric studies to be carried out with ease, as in \cite{zurman2021}. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic pitch and heave motion are used to flap the tail. Fig~\ref{fig:whale} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle, matching the vortex structures found in previous works \cite{zurman2021}.
 
 \section{Conclusions}\label{sec:conclusions}
 
