@@ -142,13 +142,13 @@ stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
 Ds = [88,128,168] # diameter resolution
-# Ds = [88] # diameter resolution
+# Ds = [168] # diameter resolution
 L = (7,3,3) # domain size in D # (7,3,3)
 center = SA[1.5,1.5,1.5]
 u_probe_loc = (4.5,2.1,1.5) # in D
 u_probe_component = 2
 datadir = "data/sphere/"
-# datadir = "data/sphere_new/"
+# datadir = "data/sphere_new_fine/"
 fname_output = "meanflow"
 verbose = true
 run = 1 # 0: postproc, 1: run
@@ -201,7 +201,7 @@ function main()
         end
     end
     hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")
-    hline!(p_cd, [0.355], linestyle=:dashdot, color=:cyan, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
+    hline!(p_cd, [0.355], linestyle=:dashdot, color=:green, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
     savefig(p_cd, string(@__DIR__) * "../../../../tex/img/sphere_validation.pdf")
 end
 
