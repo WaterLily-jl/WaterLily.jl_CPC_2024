@@ -106,9 +106,6 @@
 
 \journal{Computer Physics Communications}
 
-
-\newcommand\WaterLily[0]{\texttt{WaterLily.jl}~}
-
 \begin{document}
 
 \begin{frontmatter}
@@ -185,7 +182,7 @@ computational fluid dynamics; heterogeneous programming; Cartesian-grid methods;
 \\
 \begin{small}
 \noindent
-{\em Program Title:} \WaterLily \\
+{\em Program Title:} WaterLily.jl \\
 {\em CPC Library link to program files:} (to be added by Technical Editor) \\
 {\em Developer's repository link:} \href{https://github.com/WaterLily-jl/WaterLily.jl}{\texttt{https://github.com/WaterLily-jl/WaterLily.jl}} \\
 {\em Code Ocean capsule:} (to be added by Technical Editor)\\
@@ -243,17 +240,17 @@ During the last decade, the computational fluid dynamics (CFD) community has emb
 \caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FEM), discontinous Galerkin (DG), spectral element method (SEM), finite volume method (FVM), and flux reconstruction (FR).}\label{tab:solvers}
 \end{table}
 
-In this context, Julia \cite{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the \texttt{KernelAbstractions.jl} library \cite{Churavy2023}, which enables writing heterogeneous kernels for different backends (multi-threaded CPU, NVIDIA, AMD, and others) in a single framework.
+In this context, Julia \cite{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the \href{https://github.com/JuliaGPU/KernelAbstractions.jl}{KernelAbstractions.jl} library \cite{Churavy2023}, which enables writing heterogeneous kernels for different backends (multi-threaded CPU, NVIDIA, AMD, and others) in a single framework.
 Julia has been also tested in many HPC systems, and the reader is referred to \cite{Churavy2022} for a comprehensive review.
 
-In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \\ \href{https://github.com/WaterLily-jl/WaterLily.jl}{\WaterLily}. Differently to the solvers detailed in table \ref{tab:solvers}, \WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less that 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
+In this work, we introduce a new CFD solver with heterogeneous execution written in Julia, namely \\ \href{https://github.com/WaterLily-jl/WaterLily.jl}{WaterLily.jl}. Differently to most of the solvers detailed in table \ref{tab:solvers}, WaterLily profits from a dynamically-typed language that allows to efficiently implement performance-critical code in a compact and uniform framework, noting that the solver codebase is less than 1000 lines of code. This results in a fully-differentiable CFD solver that is easy to maintain and that can run in CPU or GPU architectures of different vendors without compromising performance. With this, the numerical methods and software design are respectively reported in sections \S\ref{sec:numerical_methods} and \S\ref{sec:software_design}. The solver is benchmarked and validated in \S\ref{sec:benchmark_validation}. Two different test cases showcasing notable features of the solver are shown in \S\ref{sec:applications}. And, finally, the discussion, expectations, and conclusions are presented in \S\ref{sec:conclusions}.
 
 \section{Numerical methods}\label{sec:numerical_methods}
 WaterLily uses Boundary Data Immersion Method (BDIM) to simulate the fluid flow around immersed bodies \cite{Weymouth2011,Maertens2014,Lauber2022}. The preceding references give the precise mathematical formulation, as well as detailed validation of the immersed-boundary method's accuracy. To summarise the approach, the momentum equation defined over the fluid domain
 \begin{equation}
     \mathcal{\dot F}:\ \dot u_i = -p_{,i} - (u_i u_j)_{,j}+\nu u_{i,jj} \quad \forall i,j \in 1\ldots n
 \end{equation}
-is integrated in time and convolved with a prescribed body velocity defined over the solid domain 
+is integrated in time and convolved with a prescribed body velocity defined over the solid domain
 \begin{equation}
     \mathcal{B}:\ u_i = V_i \quad \forall i \in 1\ldots n
 \end{equation}
@@ -261,21 +258,21 @@ resulting in a single meta-equation valid over the whole space. In these equatio
 
 The immersed-boundary thickness $\epsilon$ defines the region directly affected by the prescribed body velocities, but the flow inside this region still obeys the fluid dynamic equations with second-order accuracy \cite{Maertens2014}. The transition between these two regions is defined by the properties of the immersed surface, specifically the signed-distance $d$ \& normal $\hat n$ from any point in space to the closest surface point. This, along with the body velocity $V_i$, defines the local meta-equation.
 
-WaterLily implements the governing equation using a finite-volume approach on a uniform Cartesian grid with staggered velocity-pressure variable placement. Since all grid cells are identical, no grid information is stored. Second-order central differences are used for the pressure and diffusion terms, while a flux-limited Quick scheme is used on the convective term. While explicitly turbulence models have been used for specific projects, the core WaterLily solver is model-free, making it an implicit Large Eddy Simulation (iLES) solver \cite{Margolin2006}.
+WaterLily implements the governing equation using a finite-volume approach on a uniform Cartesian grid with staggered velocity-pressure variable placement. Since all grid cells are identical, no grid information is stored. Second-order central differences are used for the pressure and diffusion terms, while a flux-limited Quick scheme is used on the convective term. While explicit turbulence models have been used for specific projects, the core WaterLily solver is model-free, making it an implicit Large Eddy Simulation (iLES) solver \cite{Margolin2006}.
 
-Finally, the momentum equation is integrated in time using with an explicit predictor-corrector update scheme \cite{Lauber2022}. The velocity is restricted to be incompressible (divergence-free $u_{i,i}=0$) using a pressure projection scheme at each step. The resulting Poisson equation has spatially varying coefficient in the presence of immersed boundaries, and is solved using a Geometric Multi-Grid method \cite{Weymouth2022}. The time step is adapted automatically based on the maximum CFL number in the domain. 
+Finally, the momentum equation is integrated in time using an explicit predictor-corrector update scheme \cite{Lauber2022}. The velocity is restricted to be incompressible (divergence-free $u_{i,i}=0$) using a pressure projection scheme at each step. The resulting Poisson equation has spatially varying coefficient in the presence of immersed boundaries, and is solved using a Geometric Multi-Grid method \cite{Weymouth2022}. The time step is adapted automatically based on the maximum CFL number in the domain.
 
 \section{Software design}\label{sec:software_design}
 
-Julia’s flexible and fast programming capabilities enabled the implementation of \WaterLily to have many special features in a minimal codebase (approximately 1000 lines of code). For example, automatic differentiation (AD) is used to define all the properties of the immersed geometry from a user-defined signed-distance function and a coordinates-mapping function. Moreover, the whole solver is also differentiable based on AD. This allows solving optimization problems related to the immersed body with reduced computational cost compared to a finite-difference/sampling approach. In addition, the AD can also be used to develop accelerated data-driven GMG methods as demonstrated in \cite{Weymouth2022}.
+Julia’s flexible and fast programming capabilities enabled the implementation of WaterLily to have many special features in a minimal codebase (approximately 1000 lines of code). For example, automatic differentiation (AD) is used to define all the properties of the immersed geometry from a user-defined signed-distance function and a coordinates-mapping function. Moreover, the whole solver is also differentiable based on AD. This allows solving optimization problems related to the immersed body with reduced computational cost compared to a finite-difference/sampling approach. In addition, the AD can also be used to develop accelerated data-driven GMG methods as demonstrated in \cite{Weymouth2022}.
 
-The most important Julia features for implementing the solver to run on heterogeneous backends are (i) the dynamic typing system, (ii) the meta-programming capabilities, and (iii) the rich open-source packages. Multiple-dispatch enables simple functions (such as broadcasting or reductions operations on arrays) to be written at high-level by the user, while intermediate Julia libraries, and ultimately the compiler, will specialize the code for efficient execution on a particular architecture (CPU or GPU). For more specialized tasks, \WaterLily uses Julia's meta-programming features to generate code that produces an individual kernel for the specific task. The kernel can be used to offload the computational work into a GPU, or to run it in a multi-threaded CPU environment depending on the available system architecture. As an example, the gradient of the \jlinl{n}-dimensional pressure field \jlinl{p} is applied to the velocity field \jlinl{u} as follows
+The most important Julia features for implementing the solver to run on heterogeneous backends are (i) the dynamic typing system, (ii) the meta-programming capabilities, and (iii) the rich open-source packages. Multiple-dispatch enables simple functions (such as broadcasting or reductions operations on arrays) to be written at high-level by the user, while intermediate Julia libraries, and ultimately the compiler, will specialize the code for efficient execution on a particular architecture (CPU or GPU). For more specialized tasks, WaterLily uses Julia's meta-programming features to generate code that produces an individual kernel for the specific task. The kernel can be used to offload the computational work into a GPU, or to run it in a multi-threaded CPU environment depending on the available system architecture. As an example, the gradient of the \jlinl{n}-dimensional pressure field \jlinl{p} is applied to the velocity field \jlinl{u} as follows
 \begin{jllisting}
 for i in 1:n  # apply pressure gradient
     @loop u[I, i] -= c[I, i] * (p[I] - p[I - ∂(i)]) over I in inside(p)
 end
 \end{jllisting}
-where \jlinl{∂(i)} is a function defining a Cartesian index step in the direction \jlinl{i}, \jlinl{c} are the coefficients in the pressure-Poisson matrix arising from the discretization scheme, and \jlinl{inside(p)} provides the range of Cartesian indices \jlinl{I} in the pressure field to loop over (excluding ghost cells). For example, if \jlinl{size(p)==(10, 10)}, then \jlinl{inside(p)} yields a range of \jlinl{CartesianIndices((2:9, 2:9))}. When applying the \jlinl{@loop} macro to this expression, the following kernel is produced based on the \texttt{KernelAbstractactions.jl} package \citep{Churavy2023}
+where \jlinl{∂(i)} is a function defining a Cartesian index step in the direction \jlinl{i}, \jlinl{c} are the coefficients in the pressure-Poisson matrix arising from the discretization scheme, and \jlinl{inside(p)} provides the range of Cartesian indices \jlinl{I} in the pressure field to loop over (excluding ghost cells). For example, if \jlinl{size(p)==(10, 10)}, then \jlinl{inside(p)} yields a range of \jlinl{CartesianIndices((2:9, 2:9))}. When applying the \jlinl{@loop} macro to this expression, the following kernel is produced based on the \jlinl{KernelAbstractactions.jl} package \citep{Churavy2023}
 \begin{jllisting}
 @kernel function kern_(u, c, p, i, @Const(I0)) # automatically generated kernel
     I = @index(Global, Cartesian)
@@ -288,29 +285,23 @@ which is subsequently launched with the auto-generated call
 kern_(get_backend(u))(u, c, p, i, inside(p)[1] - oneunit(inside(p)[1]), ndrange=size(inside(p)))
 \end{jllisting}
 
-Note that \jlinl{@kernel}, \jlinl{@index}, \jlinl{@Const} and \jlinl{get_backend} are part of the \texttt{KernelAbstractactions.jl} API and ultimately generate the appropriate kernel based on the backend inferred by \jlinl{get_backend(u)}. Also note that a Cartesian-index based parallelization across the global memory is used, and that the \jlinl{@Const(I0)} argument passes the ghost-cell offset information into the kernel. The workgroup size for the parallelization of the range of Cartesian indices (\jlinl{ndrange}) is automatically inferred base on the size of each dimension in \jlinl{ndrange}. Moreover, the backend of the working arrays, such as \jlinl{u} or \jlinl{p}, is specified by the user through the \jlinl{mem} (for memory) keyword argument when creating a \jlinl{Simulation} object. Hence, with a simple flag, the CFD simulation can be run on a CPU or a GPU from different vendors. Currently, \WaterLily has been successfully tested on both NVIDIA and AMD GPUs. Similarly, the precision of the simulation is specified with the keyword argument \jlinl{T}, which for example can be set to \jlinl{Float32} (single) or \jlinl{Float64} (double) precision.
+Note that \jlinl{@kernel}, \jlinl{@index}, \jlinl{@Const} and \jlinl{get_backend} are part of the \jlinl{KernelAbstractactions.jl} API and ultimately generate the appropriate kernel based on the backend inferred by \jlinl{get_backend(u)}. Also note that a Cartesian-index based parallelization across the global memory is used, and that the \jlinl{@Const(I0)} argument passes the ghost-cell offset information into the kernel. The workgroup size for the parallelization of the range of Cartesian indices (\jlinl{ndrange}) is automatically inferred base on the size of each dimension in \jlinl{ndrange}. Moreover, the backend of the working arrays, such as \jlinl{u} or \jlinl{p}, is specified by the user through the \jlinl{mem} (for memory) keyword argument when creating a \jlinl{Simulation} object. Hence, with a simple flag, the CFD simulation can be run on a CPU or a GPU from different vendors. Currently, WaterLily has been successfully tested on both NVIDIA and AMD GPUs. Similarly, the precision of the simulation is specified with the keyword argument \jlinl{T}, which for example can be set to \jlinl{Float32} (single) or \jlinl{Float64} (double) precision.
 
-As hinted, the main component in \WaterLily is the \jlinl{Simulation} type, which holds information about the fluid through the \jlinl{Flow} type, and the immersed body (or bodies) through the \jlinl{AutoBody} type. Hence, to set up a simulation, the user must specify the size of the Cartesian grid as well as other optional properties such as characteristic length and velocity, fluid viscosity, and type of boundary conditions (slip by default, otherwise a convective outlet or a periodic condition can be selected too). On the other hand, the \jlinl{AutoBody} type holds the signed-distance function as well as the coordinates mapping for moving boundaries. More detailed examples on how to set up a simulation are available in \S\ref{sec:applications}.
+As hinted, the main component in WaterLily is the \jlinl{Simulation} type, which holds information about the fluid through the \jlinl{Flow} type, and the immersed body (or bodies) through the \jlinl{AutoBody} type. Hence, to set up a simulation, the user must specify the size of the Cartesian grid as well as other optional properties such as characteristic length and velocity, fluid viscosity, and type of boundary conditions (slip by default, otherwise a convective outlet or a periodic condition can be selected too). On the other hand, the \jlinl{AutoBody} type holds the signed-distance function as well as the coordinates mapping for moving boundaries. More detailed examples on how to set up a simulation are available in \S\ref{sec:applications}.
 
 \section{Benchmark and validation} \label{sec:benchmark_validation}
-\begin{itemize}
-  \item Architectures: NVIDIA H100 (Marenostrum 5 at BSC), AMD Radeon Instinct MI50 (CTE-AMD cluster at BSC), serial execution (?)
-  \item Cylinder case is not going turbulent with periodic BCs
-  \item cost on AMDGPU
-  \item Validation on sphere BiotSavart
-\end{itemize}
 
-The performance of the solver is assessed on three different cases with increasing level of complexity: the Taylor--Green vortex (TGV) at $Re=1600$ [ref], flow past a fixed sphere at $Re=3700$, and flow past a moving circular cylinder at $Re=1000$. The flow topology is shown in figure [ref]. Note that the cases range from a flow free of solid boundaries to a flow containing a dynamic body. The TGV case consists of a developing flow transitioning to turbulence in a $L^3$ triple-periodic cubic domain. The initial condition for the velocity vector field $\vec{u}_0$ is prescribed as
+The performance of the solver is assessed on three different cases with increasing level of complexity: the Taylor--Green vortex (TGV) at $Re=1600$, flow past a fixed sphere at $Re=3700$, and flow past a moving circular cylinder at $Re=1000$. Note that the cases range from a flow free of solid boundaries to a flow containing a dynamic body. The TGV case consists of a developing flow transitioning to turbulence in a $L^3$ triple-periodic cubic domain. The initial condition for the velocity vector field $\vec{u}_0$ is prescribed as
 \begin{align}
 u_0 &= -U\sin(\kappa x)\cos(\kappa y)\cos(\kappa z) \\
 v_0 &= U\cos(\kappa x)\sin(\kappa y)\cos(\kappa z) \\
 w_0 &= 0,
 \end{align}
-where $U=1$ is the characteristic velocity and $\kappa=2\pi/L$ is the wavenumber. Similarly to \cite{Dairay2017}, we use the half-domain defined by the characteristic length as the effective computational domain, and apply symmetry boundary conditions to lower the cost of the simulation. To test different grid resolutions, we select $L=\left\{2^6,2^7,2^8,2^9\right\}$ resulting into grids of 0.26, 2.10, 16.78, and 134.22 million of degrees of freedom (DOF), respectively.
+where $U=1$ is the characteristic velocity and $\kappa=2\pi/L$ is the wavenumber. Similarly to \cite{Dairay2017}, we use the half-domain defined by the characteristic length as the effective computational domain, and apply symmetry boundary conditions to lower the cost of the simulation. To test different grid resolutions, we select $L=\left\{2^6,2^7,2^8,2^9\right\}$ resulting into grids of 0.26, 2.10, 16.78, and 134.22 million of degrees of freedom (DOF), respectively. With respect to the sphere case, its diameter ($D$) is taken as the characteristic length, and a $16D\times6D\times6D$ domain is defined for increasing resolutions of $D=\left\{2^3,2^4,2^5,2^6\right\}$ resulting in 0.29, 2.36, 18.87, and 150.99 million DOF, respectively. For the circular cylinder, the diameter is again taken as the characteristic length in a $12L\times6L\times2L$ domain and resolutions of $L=\left\{2^4,2^5,2^6,2^7\right\}$ resulting in 0.59, 4.72, 37.75, 301.99 million DOF grids. We note that the finer cylinder grid consumes 39 GB of memory using single precision, and hence can be fitted in the NVIDIA Hopper H100 64GB used for benchmarking. Both the sphere and cylinder cases are initialized with a uniform flow condition $\vec{u}_0=(U,0,0)$, where $U=1$. For the sphere case, slip conditions are applied on the lateral boundaries, while a periodic boundary condition is applied on the spanwise direction of the cylinder case. A convective outlet condition is imposed on the downstream plane of both cases.
 
-With respect to the sphere case, its diameter is taken as the characteristic length, and a $16L\times6L\times6L$ domain is defined for increasing resolutions of $L=\left\{2^3,2^4,2^5,2^6\right\}$ resulting in 0.29, 2.36, 18.87, and 150.99 million DOF, respectively. For the circular cylinder, the diameter is again taken as the characteristic length in a $12L\times6L\times2L$ domain and resolutions of $L=\left\{2^4,2^5,2^6,2^7\right\}$ resulting in 0.59, 4.72, 37.75, 301.99 million DOF grids are considered. We note that the finer cylinder grid consumes 39 GB of memory using single precision, and hence can be fitted in the NVIDIA Hopper H100 64GB used for benchmarking. Both the sphere and cylinder cases are initialized with a uniform flow condition $\vec{u}_0=(U,0,0)$, slip conditions are applied on the lateral boundaries, and a convective outlet condition is applied at the downstream plane.
+The benchmark of the three cases is measured by timing the execution of 100 time steps using different backends, as displayed in figure \ref{fig:benchmarks}. On the CPU backend, it is noted that increasing the number of threads enables faster simulations in a linear trend that slowly stagnates to a factor of x8 speedup for the TGV and sphere cases, and x6 on the cylinder case, on their respective finer grid. Except for the very small grids, the CPU backend does not yield larger speedups when increasing the grid size. In contrast, speedups of the GPU with respect to the serial CPU execution are greatly increased as the GPU VRAM is filled, reaching a peak of x200 speedup factors for the TGV and sphere cases. The effect of improved performance when maximizing the GPU memory occupancy is also observed in other CFD codes \citep{Kempf2024}. Indeed, the overhead cost associated to a launching a kernel becomes less important when maximizing the computational work of the kernel by increasing the grid size (and hence the required parallel workload). This trend of the GPU backend becomes more clear in figure \ref{fig:cost}, where the cost (ie. execution time per DOF and time step) significantly decreases with increasing grid size. Qualitatively, the cost transitions from being kernel-launch bounded to workload bounded for grids larger than 10M DOF.
 
-\begin{figure}[!ht]
+\begin{figure}[!t]
   \centering
   \begin{subfigure}[t]{0.33\linewidth}
       \centering
@@ -327,18 +318,21 @@ With respect to the sphere case, its diameter is taken as the characteristic len
     \includegraphics[width=\linewidth]{img/cylinder_benchmark.pdf}
     \caption{Moving cylinder}
   \end{subfigure}
-	\caption{Time to run 100 time steps in single precision for the Taylor--Green vortex (left), fixed sphere (center), and moving cylinder (right) cases at different grid sizes. The CPU execution comprises multiple number of threads from single thread (serial) to 16 threads (multi-threading). The speedup for each case with respect to the serial execution (CPUx1) is shown above each bar. The speedup is computed as time(CPUx1)/time(X). The benchmarks have been run on an accelerated node of the Marenostrum5 supercomputer using Intel Xeon Platinum 8460Y @ 2.3GHz cores and a NVIDIA Hopper H100 64GB HBM2 GPU.}
+	\caption{Time to run 100 time steps in single precision for the Taylor--Green vortex (left), fixed sphere (center), and moving cylinder (right) cases at different grid sizes. The CPU execution comprises multiple number of threads from single thread (serial) to 16 threads (multi-threading). The speedup for each case with respect to the serial execution (CPUx1) is shown above each bar. The speedup is computed as time(CPUx1)/time(X). The benchmarks have been run on an accelerated node of the Marenostrum5 supercomputer using Intel Xeon Platinum 8460Y @ 2.3GHz cores and an NVIDIA Hopper H100 64GB HBM2 GPU.}
 	\label{fig:benchmarks}
 \end{figure}
 
-\begin{figure}[!ht]
+\begin{figure}[!t]
   \centering
   \includegraphics[width=0.4\linewidth]{img/cost.pdf}
-\caption{Cost defined as execution time per grid DOF and time step on the different cases and grid levels. Data resulting from figure \ref{fig:benchmarks} benchmarks.}
+  \vspace*{-0.2cm}
+  \caption{Cost, defined as the execution time per grid DOF and time step, on the different cases and grid levels measured on the GPU backend. Data resulting from figure \ref{fig:benchmarks} benchmarks (more details in that caption).}
 \label{fig:cost}
 \end{figure}
 
-\begin{figure}[!ht]
+The profiling of the solver is conducted on an NVIDIA GeForce RTX 4060 laptop GPU backend by timing the main kernels of the time-stepping routine using the NVTX.jl profiling package \citep{Byrne2023} (a wrapper for the NVIDIA Tools Extension Library, NVTX). The kernel profiling of the (median) time-step execution time is displayed in figure \ref{fig:profiling} for the different cases. Noticeably, the \jlinl{project!} kernel, ie. the pressure solver routine, consumes most of the execution time for all cases, up to 94\% on the TGV case. It is worth noting that a preconditioned conjugate gradient smoother (PCG) is employed in the geometric multi-grid solver. Computing dot products (array reductions) on a GPU is known to be rather inefficient because of their low arithmetic intensity, and the PCG solver contains several reduction operations. Furthermore, imposing boundary conditions (the \jlinl{BC!} kernel) also becomes expensive on the cases including solid boundaries. Again, the overhead associated to the kernel launch is non-negligible when the computational cost is small, which is indeed the case when processing the boundary ghost cells (two-dimensional slices in a three-dimensional array). With respect to the memory transfer between host (CPU) and device (GPU), the profiling shows that 99.9\% of the time is spent in kernel launching and computing, while only 0.1\% is spent in memory-copy (\jlinl{memcpy}) operations.
+
+\begin{figure}[!t]
   \centering
   \begin{subfigure}[t]{0.33\linewidth}
       \centering
@@ -356,15 +350,24 @@ With respect to the sphere case, its diameter is taken as the characteristic len
       \includegraphics[width=\linewidth]{img/cylinder_profile.pdf}%
     }
   \end{subfigure}
-  \caption{Kernel timings distribution for the 3rd-level grids of the different test cases. Timings are measured as the median value of the kernel execution time for 1000 time steps, noting that each kernel can be called more than once for each time step (ie. predictor-corrector scheme). We note that field \texttt{BC!} accounts for all the following the boundary-conditions subroutines: \texttt{BC!}, \texttt{BDIM!}, \texttt{BCTuple}, \texttt{exitBC!}, where the latter is the most expensive one. Tests are conducted using single precision in an NVIDIA GeForce RTX 4060 Laptop GPU. During the tests, 99.9\% of time is spent in kernel execution while only 0.1\% is spent on device-to-host memory-copy calls (related to the pressure solver).}
+  \caption{Kernel timings distribution for the 3rd-level grids of the different test cases. Timings are measured as the median value of the kernel execution time for 1000 time steps, noting that each kernel can be called more than once for each time step (ie. predictor-corrector scheme). The following convention applies; \jlinl{scale_u!}: scalar operation that scales the velocity field; \jlinl{project!}: pressure-Poisson equation solver; \jlinl{measure!}: coordinates mapping for a moving solid boundary; \jlinl{conv_diff!}: convection-diffusion computation; \jlinl{CFL!}: time-step prediction; \jlinl{BC!} boundary conditions; \jlinl{accelerate!}: adds a uniform source term to accelerate the background flow. We note that \jlinl{BC!} accounts for all the following boundary-conditions-related subroutines in the codebase: \jlinl{BC!}, \jlinl{BDIM!}, \jlinl{BCTuple}, \jlinl{exitBC!}, where the latter implements a convective outlet, and it is the most expensive boundary-condition kernel. Tests are conducted using single precision in an NVIDIA GeForce RTX 4060 laptop GPU. During the tests, 99.9\% of the time is spent in kernel execution while only 0.1\% is spent on device-to-host memory-copy calls (related to the pressure solver).}
 \label{fig:profiling}
 \end{figure}
+
+The validation of the solver is performed for the TGV and the sphere cases. A grid convergence of the TGV case based on temporal evolution of kinetic energy and enstrophy is displayed in figure \ref{fig:tgv_val}. The finest grid consists of $512^3$ cells spanning the symmetric subdomain ($1/8$th) of the triple periodic box, similarly to the direct numerical simulation (DNS) reference data by \cite{Dairay2017}. The fine grid results greatly match the DNS reference data in which this same resolution was used. With respect to the sphere case, a domain of $7D\times3D\times3D$ is considered for validation. The reason for this is to allow for a graeter resolution of the boundary layer, which would not be feasible with the domain used for benchmarking ($16D\times6D\times6D$). Hence, the grids tested for validation contain 88, 128, and 168 cells per diameter, totalling 43M, 132M, and 299M DOF, respectively. The minimum boundary layer thickness around the sphere at $Re=3700$ is approximately $\delta/D=0.02$ \citep{Capuano2023}, and DNS studies such as \cite{Rodriguez2011} fit 12 grid points within the boundary layer thickness. In this case, the finest grid has a resolution of $h/D=0.006$ approximately, which means that only 3 grid points are used to represent the boundary layer. Hence, it is important noticing that the current Cartesian-mesh method using constant spacing requires vast resources to fully resolve the boundary layer of the immersed bodies. Still, a converged time-averaged drag coefficient of $\overline{C_D}=0.35$ is found for all the tested grids, which correctly matches the LES data from \cite{Yun2006} and is only within the 10\% error of the DNS data from \cite{Rodriguez2011}.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=0.8\linewidth]{img/tgv.pdf}
-	\caption{Taylor--Green vortex (TGV) validation. Direct numerical simulation (DNS) data from \cite{Dairay2017} is used as reference.}
-	\label{fig:tgv}
+	\caption{Taylor--Green vortex (TGV) temporal evolution of kinetic energy (left) and enstrophy (right). Direct numerical simulation (DNS) data from \cite{Dairay2017} is used as reference.}
+	\label{fig:tgv_val}
+\end{figure}
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.4\linewidth]{img/sphere_validation.pdf}
+\caption{Temporal-averaged drag coefficient measured on the sphere at $Re=3700$ for different resolutions (cells per diameter). The time-averaged metric is integrated over 300 convective time units (CTU, $tU/L$) after discarding the first 100 CTU used to reach the statistically-steady state of the wake.}
+\label{fig:sphere_val}
 \end{figure}
 
 \section{Sample applications}\label{sec:applications}
@@ -397,7 +400,7 @@ Three applications are selected to demonstrate the capability of the package to 
 
 The first example will be optimizing the controlled 2D flow around a circle using a pair of small spinning circles placed 120 degrees relative to the inflow direction, Fig~\ref{fig:spinning_circle}a. Experimental and numerical studies of this system have show the capability of the spinning cylinders to control the flow over the large circle \cite{schulmeister2017}, establishing a steady symmetric wake, reducing the system drag and even producing a net thrust as the rotation rate is increased.
 
-The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=\frac 12 d\Omega/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain. 
+The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=\frac 12 d\Omega/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain.
 
 The entire differentiable simulation is defined with the simple script:
 \begin{jllisting}
@@ -407,17 +410,17 @@ function drag_control_sim(ξ;D=96,Re=500,d_D=0.15f0,g_D=0.05f0)
     # set up big cylinder
     C,R,U = [2D,0],D÷2,1
     big = AutoBody((x,t)->norm2(x-C)-R)         # signed-distance function
-    
+
     # set up small control cylinder
     r = d_D*R; c = C+(R+r+g_D*D)*[1/2,√3/2]
     small = AutoBody((x,t)->norm2(x)-r,         # signed-distance function
                      (x,t)->rot(ξ*U*t/r)*(x-c)) # center and spin!
-    
+
     # set up simulation
     Simulation((6D,2D),(U,0),D;ν=U*D/Re,body=big+small,T=typeof(ξ))
 end
 \end{jllisting}
-This example demonstrates that WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions. The two circles \texttt{big} and \texttt{small} are defined with a line of code each and combined trivially with \texttt{body=big+small}. It also demonstrates using a variable $\xi$ to set the types used for the simulation. This allows easy switching between any floating point precision, but it also allows automatic differentiation to be applied to the solver as a whole by running the code with a \texttt{T=Dual} data-type holding the value and derivative simultaneously \cite{RevelsLubinPapamarkou2016}.
+This example demonstrates that WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions. The two circles \jlinl{big} and \jlinl{small} are defined with a line of code each and combined trivially with \jlinl{body=big+small}. It also demonstrates using a variable $\xi$ to set the types used for the simulation. This allows easy switching between any floating point precision, but it also allows automatic differentiation to be applied to the solver as a whole by running the code with a \jlinl{T=Dual} data-type holding the value and derivative simultaneously \cite{RevelsLubinPapamarkou2016}.
 
 We use the differentiable solver to maximize the scaled propulsive power $C_P = FU/\rho dc^3$ where $F$ is the net thrust force on the system. This metric is  proportional to the propulsive efficiency since $\rho dc^3$ scales with the power required to rotate the control cylinders \cite{schulmeister2017}. The time history of $C_P$ is plotted for a few values of $\xi$ in Fig~\ref{fig:spinning_circle}b, demonstrating that only a few convective cycles are required to reach steady state, as well as the control authority of $\xi$ over the propulsive power.
 
@@ -508,7 +511,7 @@ function whale(s=10;L=24,U=1,Re=1e4,T=Float32,mem=CuArray)
 end
 \end{jllisting}
 
-The whale tail of the final example is a planar membrane define using the ParametricBodies package \cite{WeymouthLauber2023}. The planform is defined by a set of points which are interpolated using a cubic spline. The sweep of the wing is adjustable with the input parameter $s$, allowing parametric geometry studies to be carried out with ease, as in \cite{zurman2021}. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic pitch and heave motion are used to flap the tail. Fig~\ref{fig:whale} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle, matching the vortex structures found in previous works \cite{zurman2021}.
+The whale tail of the final example is a planar membrane define using the \href{https://github.com/WaterLily-jl/ParametricBodies.jl}{ParametricBodies.jl} package \cite{WeymouthLauber2023}. The planform is defined by a set of points which are interpolated using a cubic spline. The sweep of the wing is adjustable with the input parameter $s$, allowing parametric geometry studies to be carried out with ease, as in \cite{zurman2021}. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic pitch and heave motion are used to flap the tail. Fig~\ref{fig:whale} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle, matching the vortex structures found in previous works \cite{zurman2021}.
 
 \section{Conclusions}\label{sec:conclusions}
 
