@@ -41,7 +41,6 @@
 \usepackage{inconsolata}
 \usepackage{makecell}
 \usepackage{jlcode}
-
 \hypersetup{
 	unicode=true,
 	pdftitle={A descriptive title},
@@ -199,23 +198,21 @@ computational fluid dynamics; heterogeneous programming; Cartesian-grid methods;
 % {\em Summary of revisions:}*\\
   %Only required for a New Version summary, otherwise leave out.
 {\em Nature of problem(approx. 50-250 words):}\\
-  %Describe the nature of the problem here. \\
+The combination of high-level libraries with low-level and efficient computational fluid dynamics solvers is typically hampered by the two-language problem. To overcome this limitation, this works presents a new backend-agnostic incompressible flow solver specially designed for the simulation of fluid flow and dynamic geometries, namely WaterLily.jl. Written in the Julia language, the solver is equipped with fast and efficient numerical methods which can be natively combined with external high-level libraries. This allows the solver to seamlessly run in CPU or GPU backends from different vendors. Furthermore, WaterLily can easily tackle geometry-focused optimization problems by using automatic differentiation, a feature which is readily available in the dynamically-typed language.\\
 {\em Solution method(approx. 50-250 words):}\\
-  %Describe the method solution here.
+WaterLily.jl numerically solves the incompressible Navier--Stokes equations using the finite-volume method in a staggered Cartesian grid. A predictor-corrector ensures a divergence-free velocity field and is it used for the temporal integration of the governing equations. The pressure-Poisson equation is solved with a geometric-multigrid method. The boundary-data immersion method enforces the effect of solid boundaries into the flow, and allows simulating dynamic bodies based on a signed-distance function and a temporal mapping of the body coordinates.\\
 {\em Additional comments including restrictions and unusual features (approx. 50-250 words):}\\
-  %Provide any additional comments here.
+% \begin{thebibliography}{0}
+% \bibitem{1}Program summary reference 1         % This list should only contain those items referenced in the
+% \bibitem{2}Program summary reference 2         % Program Summary section.
+% \bibitem{3}Program summary reference 3         % Type references in text as [1], [2], etc.
+                              %  This list is different from the bibliography at the end of
+                              %  the Long Write-Up.
+% \end{thebibliography}
 
-\begin{thebibliography}{0}
-\bibitem{1}Program summary reference 1         % This list should only contain those items referenced in the
-\bibitem{2}Program summary reference 2         % Program Summary section.
-\bibitem{3}Program summary reference 3         % Type references in text as [1], [2], etc.
-                               % This list is different from the bibliography at the end of
-                               % the Long Write-Up.
-\end{thebibliography}
 % * Items marked with an asterisk are only required for new versions
 % of programs previously published in the CPC Program Library.\\
 \end{small}
-
 
 \section{Introduction}
 
@@ -267,12 +264,18 @@ Finally, the momentum equation is integrated in time using an explicit predictor
 Julia’s flexible and fast programming capabilities enabled the implementation of WaterLily to have many special features in a minimal codebase (approximately 1000 lines of code). For example, automatic differentiation (AD) is used to define all the properties of the immersed geometry from a user-defined signed-distance function and a coordinates-mapping function. Moreover, the whole solver is also differentiable based on AD. This allows solving optimization problems related to the immersed body with reduced computational cost compared to a finite-difference/sampling approach. In addition, the AD can also be used to develop accelerated data-driven GMG methods as demonstrated in \cite{Weymouth2022}.
 
 The most important Julia features for implementing the solver to run on heterogeneous backends are (i) the dynamic typing system, (ii) the meta-programming capabilities, and (iii) the rich open-source packages. Multiple-dispatch enables simple functions (such as broadcasting or reductions operations on arrays) to be written at high-level by the user, while intermediate Julia libraries, and ultimately the compiler, will specialize the code for efficient execution on a particular architecture (CPU or GPU). For more specialized tasks, WaterLily uses Julia's meta-programming features to generate code that produces an individual kernel for the specific task. The kernel can be used to offload the computational work into a GPU, or to run it in a multi-threaded CPU environment depending on the available system architecture. As an example, the gradient of the \jlinl{n}-dimensional pressure field \jlinl{p} is applied to the velocity field \jlinl{u} as follows
+
+\begin{minipage}{\linewidth}
 \begin{jllisting}
 for i in 1:n  # apply pressure gradient
     @loop u[I, i] -= c[I, i] * (p[I] - p[I - ∂(i)]) over I in inside(p)
 end
 \end{jllisting}
+\end{minipage}
+
 where \jlinl{∂(i)} is a function defining a Cartesian index step in the direction \jlinl{i}, \jlinl{c} are the coefficients in the pressure-Poisson matrix arising from the discretization scheme, and \jlinl{inside(p)} provides the range of Cartesian indices \jlinl{I} in the pressure field to loop over (excluding ghost cells). For example, if \jlinl{size(p)==(10, 10)}, then \jlinl{inside(p)} yields a range of \jlinl{CartesianIndices((2:9, 2:9))}. When applying the \jlinl{@loop} macro to this expression, the following kernel is produced based on the \jlinl{KernelAbstractactions.jl} package \citep{Churavy2023}
+
+\begin{minipage}{\linewidth}
 \begin{jllisting}
 @kernel function kern_(u, c, p, i, @Const(I0)) # automatically generated kernel
     I = @index(Global, Cartesian)
@@ -280,10 +283,15 @@ where \jlinl{∂(i)} is a function defining a Cartesian index step in the direct
     @fastmath @inbounds u[I, i] -= c[I, i] * (p[I] - p[I - ∂(i)])
 end
 \end{jllisting}
+\end{minipage}
+
 which is subsequently launched with the auto-generated call
+
+\begin{minipage}{\linewidth}
 \begin{jllisting}
 kern_(get_backend(u))(u, c, p, i, inside(p)[1] - oneunit(inside(p)[1]), ndrange=size(inside(p)))
 \end{jllisting}
+\end{minipage}
 
 Note that \jlinl{@kernel}, \jlinl{@index}, \jlinl{@Const} and \jlinl{get_backend} are part of the KernelAbstractactions.jl API and ultimately generate the appropriate kernel based on the backend inferred by \jlinl{get_backend(u)}. Also note that a Cartesian-index based parallelization across the global memory is used, and that the \jlinl{@Const(I0)} argument passes the ghost-cell offset information into the kernel. The workgroup size for the parallelization of the range of Cartesian indices (\jlinl{ndrange}) is automatically inferred base on the size of each dimension in \jlinl{ndrange}. Moreover, the backend of the working arrays, such as \jlinl{u} or \jlinl{p}, is specified by the user through the \jlinl{mem} (for memory) keyword argument when creating a \jlinl{Simulation} object. Hence, with a simple flag, the CFD simulation can be run on a CPU or a GPU from different vendors. Currently, WaterLily has been successfully tested on both NVIDIA and AMD GPUs. Similarly, the precision of the simulation is specified with the keyword argument \jlinl{T}, which for example can be set to \jlinl{Float32} (single) or \jlinl{Float64} (double) precision.
 
@@ -402,24 +410,30 @@ The first example will be optimizing the controlled 2D flow around a circle usin
 
 The system is described by a few dimensionless ratios: $Re=UD/\nu$ the Reynolds number based on the large circle diameter and inflow velocity, as well as $d/D$, $g/D$ and $\xi=\frac 12 d\Omega/U$ the scaled diameter of the control circle, it's gap from the large circle surface, and it's scaled surface speed. This system is simulated with WaterLily using the values of $Re=500,\ d/D=0.15,\ g/D=0.05$ with grid resolution $D/h=96$. The domain is sized to $(6D,2D)$ taking advantage of the known symmetry of the flow by using a symmetry plane and only modelling the upper half of the full domain.
 
-The entire differentiable simulation is defined with the simple script:
+The entire differentiable simulation is defined with the simple script
+
+\begin{minipage}{\linewidth}\noindent
 \begin{jllisting}
-using WaterLily: norm2                   # vector length
 rot(θ) = [cos(θ) -sin(θ); sin(θ) cos(θ)] # rotation matrix
-function drag_control_sim(ξ;D=96,Re=500,d_D=0.15f0,g_D=0.05f0)
+function drag_control_sim(ξ; D=96, Re=500, d_D=0.15f0, g_D=0.05f0)
     # set up big cylinder
-    C,R,U = [2D,0],D÷2,1
-    big = AutoBody((x,t)->norm2(x-C)-R)         # signed-distance function
+    C, R, U = [2D, 0], D÷2, 1
+    big = AutoBody((x, t) -> √sum(abs2, x), x - C) - R) # signed-distance function
 
     # set up small control cylinder
-    r = d_D*R; c = C+(R+r+g_D*D)*[1/2,√3/2]
-    small = AutoBody((x,t)->norm2(x)-r,         # signed-distance function
-                     (x,t)->rot(ξ*U*t/r)*(x-c)) # center and spin!
+    r = d_D * R
+    c = C + (R + r + g_D * D) * [1 / 2, √3 / 2]
+    small = AutoBody(
+        (x, t) -> √sum(abs2, x) - r,           # signed-distance function
+        (x, t) -> rot(ξ * U * t / r) * (x - c) # center and spin!
+    )
 
     # set up simulation
-    Simulation((6D,2D),(U,0),D;ν=U*D/Re,body=big+small,T=typeof(ξ))
+    Simulation((6D, 2D), (U, 0), D; ν=U * D / Re, body=big + small, T=typeof(ξ))
 end
 \end{jllisting}
+\end{minipage}
+
 This example demonstrates that WaterLily can combine AutoBodies based on the arithmetic of signed-distance functions. The two circles \jlinl{big} and \jlinl{small} are defined with a line of code each and combined trivially with \jlinl{body=big+small}. It also demonstrates using a variable $\xi$ to set the types used for the simulation. This allows easy switching between any floating point precision, but it also allows automatic differentiation to be applied to the solver as a whole by running the code with a \jlinl{T=Dual} data-type holding the value and derivative simultaneously \cite{RevelsLubinPapamarkou2016}.
 
 We use the differentiable solver to maximize the scaled propulsive power $C_P = FU/\rho dc^3$ where $F$ is the net thrust force on the system. This metric is  proportional to the propulsive efficiency since $\rho dc^3$ scales with the power required to rotate the control cylinders \cite{schulmeister2017}. The time history of $C_P$ is plotted for a few values of $\xi$ in Fig~\ref{fig:spinning_circle}b, demonstrating that only a few convective cycles are required to reach steady state, as well as the control authority of $\xi$ over the propulsive power.
@@ -427,8 +441,6 @@ We use the differentiable solver to maximize the scaled propulsive power $C_P = 
 We optimize $\hat\xi=\text{argmax}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidon's method \cite{davidon1991}, which evaluates $C_P$ and it's derivative $\partial C_P/\partial \xi$ at points bracketing an optimum, using inverse cubic interpolation to iteratively restrict the interval. Both the value and derivative of the power are computed simultaneously using dual numbers, at a cost only 80\% larger than evaluating the function alone. Fig~\ref{fig:spinning_circle}c shows the resulting evaluation history starting with the interval $\xi=[3,8]$, leading to the optimum $\hat\xi\approx 6.26$ in a few iterations. Rates above this optimum produce more net thrust, but require excessive rotation rates to produce.
 
 \subsection{Deforming and dynamic geometries}
-
-
 \begin{figure}
     \centering
     \includegraphics[width=0.24\linewidth,trim={90 150 70 200},clip]{img/Jelly_1.png}
@@ -444,27 +456,34 @@ We optimize $\hat\xi=\text{argmax}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidon
 
 The final two examples showcase the solver's ability to handle more complex geometries with ease. The first is a pulsing jellyfish-inspired geometry, and the second is a whale tail-inspired geometry. Both of these cases are fast enough to simulate on a laptop GPU for live demonstrations at reduced resolution.
 
+\begin{minipage}{\linewidth}
 \begin{jllisting}
-function jelly(p=5;Re=500,mem=CuArray,U=1)
+function jelly(p=5; Re=500, mem=CuArray, U=1)
     # Define simulation size, geometry dimensions, & viscosity
-    n = 2^p; R = 2n/3; h = 4n-2R; ν = U*R/Re
+    n = 2^p
+    R = 2n / 3
+    h = 4n - 2R
+    ν = U * R / Re
 
     # Motion functions
-    ω = 2U/R
-    A(t) = 1 .- [1,1,0]*0.1*cos(ω*t)
-    B(t) = [0,0,1]*((cos(ω*t)-1)*R/4-h)
-    C(t) = [0,0,1]*sin(ω*t)*R/4
+    ω = 2U / R
+    A(t) = 1 .- [1, 1, 0] * 0.1 * cos(ω * t)
+    B(t) = [0, 0, 1] * ((cos(ω * t) - 1) * R / 4 - h)
+    C(t) = [0, 0, 1] * sin(ω * t) * R / 4
 
     # Build jelly from a mapped sphere and plane
-    sphere = AutoBody((x,t)->abs(√sum(abs2,x)-R)-1, # sdf
-                      (x,t)->A(t).*x+B(t)+C(t))     # map
-    plane = AutoBody((x,t)->x[3]-h,(x,t)->x+C(t))
-    body =  sphere-plane
+    sphere = AutoBody(
+      (x, t) -> abs(√sum(abs2, x) - R) - 1, # sdf
+      (x, t) -> A(t) .* x + B(t) + C(t)     # map
+    )
+    plane = AutoBody((x, t) -> x[3] - h, (x, t) -> x + C(t))
+    body =  sphere - plane
 
     # Return initialized simulation
-    Simulation((n,n,4n),(0,0,-U),R;ν,body,mem,T=Float32)
+    Simulation((n, n, 4n), (0, 0, -U), R; ν, body, mem, T=Float32)
 end
 \end{jllisting}
+\end{minipage}
 
 The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this case taking the difference of a hollow sphere with an oriented plane. This geometry is made to pulse by mapping the coordinates harmonically in the radial and transverse directions. While the geometry maintains a roughly constant solid volume throughout the pulse, small deviations are handled gracefully by the solver. Fig~\ref{fig:jelly} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle. Each cycle generates a strong propulsive vortex ring which breaks up as it propagates away, in qualitative agreement with experimental studies \cite{dabiri2005}.
 
@@ -496,20 +515,25 @@ The bell of the jellyfish is constructed with more AutoBody-arithmetic, in this 
     \caption{Flow induced by a flapping whale tail geometry visualized by vorticity magnitude at equally spaced intervals over a cycle using chord resolution $L=96$ and sweep $s=10$.}
     \label{fig:whale}
 \end{figure}
+
+\begin{minipage}{\linewidth}
 \begin{jllisting}
-function whale(s=10;L=24,U=1,Re=1e4,T=Float32,mem=CuArray)
-    pnts = [0 40 190   200   190   170   100   0 -10 0
-            0  0  8s 8s+40 5s+70 5s+50 5s+70 100  80 0]
-    planform = BSplineCurve(reverse(pnts),degree=3)
-    function map(x,t)
-        θ,h = π/6*sin(U*t/L),1+0.5cos(U*t/L)
+function whale(s=10; L=24, U=1, Re=1e4, T=Float32, mem=CuArray)
+    pnts = [
+        0 40 190   200   190   170   100   0 -10 0
+        0  0  8s 8s+40 5s+70 5s+50 5s+70 100  80 0
+    ]
+    planform = BSplineCurve(reverse(pnts), degree=3)
+    function map(x, t)
+        θ, h = π / 6 * sin(U * t / L), 1 + 0.5cos(U * t / L)
         Ry = SA[cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
-        Ry*100*(x/L-SA[0.75,0,h])
+        Ry * 100 * (x / L - SA[0.75, 0, h])
     end
-    body=PlanarParametricBody(planform,(0,1);map,mem)
-    Simulation((5L,3L,2L),(U,0,0),L;U,ν=U*L/Re,body,T,mem)
+    body = PlanarParametricBody(planform, (0, 1); map, mem)
+    Simulation((5L, 3L, 2L), (U, 0, 0), L; U, ν=U * L / Re, body, T, mem)
 end
 \end{jllisting}
+\end{minipage}
 
 The final example of the whale tail is a planar membrane define using the \href{https://github.com/WaterLily-jl/ParametricBodies.jl}{ParametricBodies.jl} package \cite{WeymouthLauber2023}. The planform is defined by a set of points which are interpolated using a cubic spline. The sweep of the wing is adjustable with the input parameter $s$, allowing parametric geometry studies to be carried out with ease, as in \cite{zurman2021}. The 3D distance function and normal to this planar membrane are then evaluated using a parametric root-finding method to immerse the geometry in the simulation as with the examples above. Harmonic pitch and heave motion are used to flap the tail. Fig~\ref{fig:whale} shows equally spaced snapshots of the geometry and resulting flow throughout the cycle, matching the vortex structures found in previous works \cite{zurman2021}.
 
