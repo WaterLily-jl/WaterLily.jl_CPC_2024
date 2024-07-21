@@ -343,7 +343,6 @@ We optimize $\hat\xi=\text{argmax}\ C_P(\xi)$ at time $t^*=tU/L=2$ using Davidon
     \includegraphics[width=0.24\linewidth,trim={90 150 70 200},clip]{img/Jelly_2.png}
     \includegraphics[width=0.24\linewidth,trim={90 150 70 200},clip]{img/Jelly_3.png}
     \includegraphics[width=0.24\linewidth,trim={90 150 70 200},clip]{img/Jelly_5.png}
-
     \caption{Flow induced by a pulsing jellyfish geometry visualized by vorticity magnitude at equally spaced intervals over a cycle.}
     \label{fig:jelly}
 \end{figure}
@@ -424,7 +423,7 @@ Based on three different test cases (TGV, fixed sphere, and moving cylinder) wit
 In addition, we provide an example of the AD capabilities of the solver with the classical rotating cylinder control problem. The optimal spinning rate of the small cylinder controlling the wake of the large fixed cylinder is found with few optimization steps based on the scaled propulsive power derivative. Last, the possibility of simulating complex dynamic bodies is showed with a jellyfish-like geometry that heaves while also expanding and contracting, and a parametrically-defined flapping whale tail. Future work will focus on the parallelization of the solver at the distributed-memory level using the message passing interface (MPI) standard, the inclusion of multiphase flow simulation through the volume-of-fluid methods, and the continuous improvement of the performance of the solver.
 
 \section{Acknowledgements}\label{sec:acknowledgements}
-The authors acknowledge the Barcelona Supercomputing Center for awarding access to the MareNostrum5 system. The authors also acknowledge Dr. Valentin Churavy for creating KernelAbstractions.jl and his continued support regarding its usage, and Dr. Lucas Gasparino for fruitful discussions and initial tests on his personal GPU. GDW also acknowledges the support from the XXX under grant number YYY.
+The authors acknowledge the Barcelona Supercomputing Center for awarding access to the MareNostrum5 system. The authors also acknowledge Dr. Valentin Churavy for creating KernelAbstractions.jl and his continued support regarding its usage, and Dr. Lucas Gasparino for fruitful discussions and initial tests on his personal GPU.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{main.bib}
