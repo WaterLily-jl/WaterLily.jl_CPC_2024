@@ -77,10 +77,11 @@
 \title{WaterLily.jl: A differentiable and backend-agnostic Julia solver to simulate incompressible viscous flow and dynamic bodies}
 
 \author[a]{Gabriel D. Weymouth}
-\author[a]{Bernat Font\corref{author}}
+\author[a,b]{Bernat Font\corref{author}}
 
 \cortext[author] {Corresponding author.\\\textit{E-mail address:} b.font@tudelft.nl}
 \address[a]{Faculty of Mechanical Engineering, Delft University of Technology, Delft, Netherlands}
+\address[b]{Barcelona Supercomputing Center, Barcelona, Spain}
 
 \begin{abstract}
 Integrating computational fluid dynamics (CFD) software into optimization and machine-learning frameworks is hampered by the rigidity of classic computational languages and the slow performance of more flexible high-level languages. In this work, we introduce WaterLily.jl: an open-source incompressible viscous flow solver written in the Julia language. An immersed boundary method is used to enforce the effect of solid boundaries on flow past complex geometries with arbitrary motions. The small code base is multidimensional, multiplatform and backend-agnostic (serial and multithreaded CPU, and GPU execution). Additionally, the dynamically typed language allows the solver to be fully differentiable using automatic differentiation. The computational time per time step scales linearly with the number of degrees of freedom (DOF) on CPUs, and we measure up to a 200x speed-up using CUDA kernels resulting in a cost of 1.44 nanoseconds per DOF and time step. This leads to comparable performance with low-level CFD solvers written in C and Fortran on research-scale problems, opening up exciting possible future applications on the cutting edge of machine-learning research.
@@ -101,7 +102,7 @@ computational fluid dynamics; heterogeneous programming; Cartesian-grid methods;
 {\em CPC Library link to program files:} (to be added by Technical Editor) \\
 {\em Developer's repository link:} \href{https://github.com/WaterLily-jl/WaterLily.jl}{\texttt{https://github.com/WaterLily-jl/WaterLily.jl}} \\
 {\em Code Ocean capsule:} (to be added by Technical Editor)\\
-{\em Licensing provisions(please choose one):} MIT \\
+{\em Licensing provisions:} MIT \\
 {\em Programming language:} Julia \\
 {\em Supplementary material:} \href{https://github.com/WaterLily-jl/WaterLily.jl_CPC_2024}{\texttt{https://github.com/WaterLily-jl/WaterLily.jl\_CPC\_2024}} \\
 {\em Nature of problem(approx. 50-250 words):}\\
