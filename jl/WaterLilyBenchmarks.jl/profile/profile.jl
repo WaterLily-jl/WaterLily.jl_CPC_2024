@@ -1,5 +1,6 @@
 # Run profiling with (eg): nsys profile -o "tgv" julia --project profile.jl --case="tgv" --log2p=8 --run
 # Analyse as (eg): nsys stats -r nvtx_startend_sum --force-export=true "tgv.nsys-rep"
+# Profiling results is stored in data/. Data not included in the repository because it weights 1GB approximately, but it is available upon request.
 
 include("../src/WaterLilyBenchmarks.jl")
 using .WaterLilyBenchmarks

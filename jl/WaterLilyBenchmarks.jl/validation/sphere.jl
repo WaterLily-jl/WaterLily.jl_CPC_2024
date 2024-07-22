@@ -142,17 +142,14 @@ stats_init = 100.0 # in CTU
 stats_interval = 0.1 # in CTU
 dump_interval = 5000 # in CTU
 Ds = [88,128,168] # diameter resolution
-# Ds = [168] # diameter resolution
 L = (7,3,3) # domain size in D # (7,3,3)
 center = SA[1.5,1.5,1.5]
 u_probe_loc = (4.5,2.1,1.5) # in D
 u_probe_component = 2
 datadir = "data/sphere/"
-# datadir = "data/sphere_new_fine/"
 fname_output = "meanflow"
 verbose = true
-run = 1 # 0: postproc, 1: run
-# run = 0 # 0: postproc, 1: run
+run = 0 # 0: postproc, 1: run
 _plot = true
 
 function main()
@@ -161,14 +158,13 @@ function main()
     for D in Ds
         println("Running D = $D")
         if run == 1
-            _, meanflow, force = run_sim(D, backend; L, center, u_probe_loc, u_probe_component, Re, T)
+            _, _, force = run_sim(D, backend; L, center, u_probe_loc, u_probe_component, Re, T)
         end
         # postproc forces
-        t_init, sampling_rate = stats_init, 0.1
         force, u_probe, t = read_forces("force_D$D.jld2"; dir=datadir)
         force = mapreduce(permutedims, vcat, force)
         fx, fy, fz = force[:,1], force[:,2], force[:,3]
-        idx = t .> t_init
+        idx = t .> stats_init
         fx, fy, fz, u, t = fx[idx], fy[idx], fz[idx], u_probe[idx], t[idx]
         CD_mean = sum(fx[2:end].*diff(t))/sum(diff(t))
         println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
@@ -179,25 +175,9 @@ function main()
                 legendfontsize=14, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
                 ylabel=L"$\overline{C_D}$", label=D==168 ? "Present" : ""
             )
-            cd_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
-            plot!(cd_plot, xlabel=L"$tU/D$", ylabel=L"$C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
-            savefig(cd_plot, string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
-        end
-
-        # postproc St
-        t_interp = t[1]:sampling_rate:t[end] |> collect
-        u_interp = LinearInterpolation(t, u).(t_interp)
-        F = 1/(t_interp[end]-t_interp[1])*fft(u_interp) |> fftshift .|> x->abs(x)^2
-        fk = fftfreq(length(t_interp), 1/sampling_rate) |> fftshift
-        fk_pos = fk[fk .> 0]
-        F = F[fk .> 0]
-        St = fk_pos[argmax(F.*fk_pos)]
-        println("▷ St = "*@sprintf("%.4f", St))
-        if _plot
-            fft_plot = plot(fk_pos, F, xaxis=:log, yaxis=:log, linewidth=2)
-            plot!(fft_plot, xlabel=L"$fD/U$", ylabel=L"$PS(u)$", framestyle=:box, grid=true,
-                size=(600, 600), xlims=(fk_pos[1], fk_pos[end]))
-            savefig(string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_St.pdf")
+            # cd_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
+            # plot!(cd_plot, xlabel=L"$tU/D$", ylabel=L"$C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
+            # savefig(cd_plot, string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
         end
     end
     hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")

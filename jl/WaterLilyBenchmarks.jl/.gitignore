@@ -23,7 +23,6 @@ docs/site/
 # environment.
 Manifest.toml
 
-validation/data/
 *.pvd
 
 run/
