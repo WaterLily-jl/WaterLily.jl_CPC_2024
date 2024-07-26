@@ -1,6 +1,6 @@
 using KernelAbstractions: synchronize, get_backend
 using CUDA: CuArray
-# using AMDGPU: ROCArray
+using AMDGPU: ROCArray
 
 function parse_cla(args; cases=["tgv"], log2p=[(6,7)], max_steps=[100], ftype=[Float32], backend=Array)
     iarg(arg) = occursin.(arg, args) |> findfirst

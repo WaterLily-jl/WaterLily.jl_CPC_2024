@@ -21,14 +21,14 @@ end
 function sphere(p, backend; Re=3700, U=1, T=Float32)
     D = 2^p; ν = U*D/Re
     L = (16D, 6D, 6D)
-    center = SA[1.5D, 3D, 3D]
-    body = AutoBody((x,t)-> √sum(abs2, x .- center) - D/2)
+    center = @SVector T[1.5D, 3D, 3D]; radius = T(D/2)
+    body = AutoBody((x,t) -> √sum(abs2, x .- center) - radius)
     Simulation(L, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, perdir=(2, 3), exitBC=true)
 end
 
 function cylinder(p, backend; Re=1e3, U=1, T=Float32)
-    L = 2^p; R = L/2; ν = U*L/Re
-    center = SA[1.5L, 3L, 0]
+    L = 2^p; R = T(L/2); ν = U*L/Re
+    center = @SVector T[1.5L, 3L, 0]
     function sdf(xyz, t)
         x, y, z = xyz - center
         √sum(abs2, SA[x, y, 0]) - R
