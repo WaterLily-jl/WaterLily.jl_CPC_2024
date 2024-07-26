@@ -30,7 +30,7 @@ begin
     # sim = whale(100,mem=CuArray);  # closer to real-time
     # sim_step!(sim,0.1);
 
-    # Create CPU buffer arrays for geometry flow viz 
+    # Create CPU buffer arrays for geometry flow viz
     a = sim.flow.σ
     d = similar(a,size(inside(a))) |> Array; # one quadrant
     md = similar(d,(1,2,1).*size(d))  # hold mirrored data
