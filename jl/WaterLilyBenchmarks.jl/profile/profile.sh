@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage example
+# Usage example with --run=0: postproc only, --run=1: run only, --run=2: run and postproc
 
 # sh profile.sh -c "tgv sphere cylinder" -p "8 5 6" -s 1000 -r 1
 
@@ -14,7 +14,7 @@ julia_version () {
 # Grep current julia version
 waterlily_profile_branch () {
     cd $WATERLILY_DIR
-    git checkout kernel_profiling
+    git checkout kernel_profiling2
     julia --project -e "using Pkg; Pkg.update();"
     cd $THIS_DIR
 }
@@ -27,13 +27,13 @@ update_environment () {
 # Run profiling
 run_profiling () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
-    echo "Running: nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia ${full_args[@]}"
-    nsys profile --force-overwrite true -o $THIS_DIR/data/$case/$case julia "${full_args[@]}"
+    echo "Running profiling: nsys profile -o $THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia ${full_args[@]}"
+    nsys profile -o $THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia "${full_args[@]}"
 }
 # Run postprocessing
 run_postprocessing () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
-    echo "Running: julia ${full_args[@]}"
+    echo "Running postprocessing: julia ${full_args[@]}"
     julia "${full_args[@]}"
 }
 # Print benchamrks info
@@ -132,12 +132,14 @@ args_cases="--backend=$BACKEND --max_steps=$MAXSTEPS --ftype=$FTYPE"
 for ((i = 0; i < ${#CASES[@]}; ++i)); do
     case=${CASES[$i]}
     mkdir -p $THIS_DIR/data/$case
-    if [ $RUN -eq 1 ]; then
+    if [ $RUN -gt 0 ]; then
         args="${THIS_DIR}/${FILE} --case=$case --log2p=${LOG2P[$i]} $args_cases --run=1"
         run_profiling
     fi
-    args="${THIS_DIR}/${FILE} --case=$case --log2p=${LOG2P[$i]} $args_cases --run=0"
-    run_postprocessing
+    if [ $RUN -ne 1 ]; then
+        args="${THIS_DIR}/${FILE} --case=$case --log2p=${LOG2P[$i]} $args_cases --run=0"
+        run_postprocessing
+    fi
 done
 
 echo "All done!"
