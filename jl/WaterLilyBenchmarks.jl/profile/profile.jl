@@ -20,8 +20,7 @@ metaparse(x) = eval(Meta.parse(x))
 getf(str) = eval(Symbol(str))
 
 function main(sim, max_steps; remeasure=false)
-    for _ in 1:10 sim_step!(sim; remeasure=remeasure) end # compilation and warmup
-    for i in 1:max_steps sim_step_profile!(sim; remeasure=remeasure) end # profiling
+    for i in 1:max_steps sim_step!(sim; remeasure=remeasure) end # profiling
 end
 
 const max_steps_const = 1000
@@ -41,7 +40,7 @@ if metaparse(arg_value("run")) == 1 # run profiling
     main(sim, max_steps; remeasure=case=="cylinder")
 else # postprocess profiling
     nsys_fields = ["range", "style", "total_proj_time", "total_range_time", "instances", "proj_avg", "proj_median", "proj_min", "proj_max", "proj_std", "total_gpu_ops", "avg_gpu_ops", "avg_range_level", "avg_num_child"]
-    kernels = ["project!", "CFL!", "BDIM!", "BC!", "conv_diff!", "scale_u!", "exitBC!", "measure!"] # "BCTuple", "accelerate!"
+    kernels = ["project!", "CFL!", "BDIM!", "BC!", "conv_diff!", "scale_u!", "copy_u0!", "exitBC!", "measure!"] # "BCTuple", "accelerate!"
     kernel_instances_per_dt = Float64[2, 1, 2, 4, 2, 2, 2, 2, 1, 1]
     kernels_dict = Dict(k=>Dict{String,Any}("ipdt"=>kernel_instances_per_dt[i], "time_weighted"=>0.0) for (i,k) in enumerate(kernels))
     data = readlines(`nsys stats -r nvtx_gpu_proj_sum "data/$case/$case.sqlite"`)[7:end-1] .|> x->split(x,' '; keepempty=false)
@@ -75,7 +74,7 @@ else # postprocess profiling
     sortidx = sortperm(lowercase.(labels), rev=true)
     labels = labels[sortidx]
     kernel_weighted_time = kernel_weighted_time[sortidx]
-    colors = [:grey, :orange, :red, :blue, :purple, :green]
+    colors = [:pink, :grey, :orange, :red, :blue, :purple, :green]
 
     with_theme(theme_latexfonts(), fontsize=25, figure_padding=1) do
         fig, ax, plt = pie(
