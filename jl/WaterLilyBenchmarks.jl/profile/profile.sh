@@ -27,8 +27,8 @@ update_environment () {
 ## Run profiling
 run_profiling () {
     full_args=(--project=${THIS_DIR} --startup-file=no $args)
-    echo "Running profiling: nsys profile --trace=nvtx,cuda --output=$THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia ${full_args[@]}"
-    nsys profile --trace=nvtx,cuda --output=$THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia "${full_args[@]}"
+    echo "Running profiling: nsys profile --trace=nvtx,cuda -–sample=none --output=$THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia ${full_args[@]}"
+    nsys profile --trace=nvtx,cuda -–sample=none --output=$THIS_DIR/data/$case/$case.nsys-rep --export=sqlite --force-overwrite=true julia "${full_args[@]}"
 }
 ## Run postprocessing
 run_postprocessing () {

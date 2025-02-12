@@ -9,6 +9,7 @@
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:1
 #SBATCH --time=12:00:00
+#SBATCH --constraint=perfparanoid
 
 export JULIA_DEPOT_PATH="$HOME/.julia-acc"
 
