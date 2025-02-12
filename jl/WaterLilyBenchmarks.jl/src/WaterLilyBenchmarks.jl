@@ -10,7 +10,7 @@ include("util.jl")
 function tgv(p, backend; Re=1600, T=Float32)
     L = 2^p; U = 1; κ=π/L; ν = 1/(κ*Re) # L = 3*2^p
     function uλ(i,xyz)
-        x,y,z = @. xyz/L*π                # scaled coordinates
+        x,y,z = @. (xyz - 0.0)/L*π                # scaled coordinates
         i==1 && return -U*sin(x)*cos(y)*cos(z) # u_x
         i==2 && return  U*cos(x)*sin(y)*cos(z) # u_y
         return 0.                              # u_z

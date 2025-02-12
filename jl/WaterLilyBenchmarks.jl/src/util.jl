@@ -1,6 +1,6 @@
-using KernelAbstractions: synchronize, get_backend
-using CUDA: CuArray
-using AMDGPU: ROCArray
+using KernelAbstractions
+using CUDA
+# using AMDGPU
 
 function parse_cla(args; cases=["tgv"], log2p=[(6,7)], max_steps=[100], ftype=[Float32], backend=Array)
     iarg(arg) = occursin.(arg, args) |> findfirst
@@ -20,7 +20,7 @@ macro add_benchmark(args...)
     return quote
         $suite[$label] = @benchmarkable begin
             $ex
-            synchronize($b)
+            KernelAbstractions.synchronize($b)
         end
     end |> esc
 end
@@ -31,7 +31,7 @@ function add_to_suite!(suite, sim_function; p=(3,4,5), s=100, ft=Float32, backen
         sim = sim_function(n, backend; T=ft)
         sim_step!(sim, typemax(ft); max_steps=1, verbose=false, remeasure=remeasure) # warm up
         suite[bstr][repr(n)] = BenchmarkGroup([repr(n)])
-        KA_backend = get_backend(sim.flow.p)
+        KA_backend = KernelAbstractions.get_backend(sim.flow.p)
         @add_benchmark sim_step!($sim, $typemax($ft); max_steps=$s, verbose=false, remeasure=$remeasure) $KA_backend suite[bstr][repr(n)] "sim_step!"
     end
 end
