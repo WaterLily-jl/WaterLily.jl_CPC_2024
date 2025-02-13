@@ -74,8 +74,8 @@ else # postprocess profiling
     sortidx = sortperm(lowercase.(labels), rev=true)
     labels = labels[sortidx]
     kernel_weighted_time = kernel_weighted_time[sortidx]
-    colors = [:pink, :grey, :orange, :red, :blue, :purple, :green]
-
+    cg = cgrad(:darktest, length(kernels)-2, categorical=true)
+    colors = [c for c in cg.colors]
     with_theme(theme_latexfonts(), fontsize=25, figure_padding=1) do
         fig, ax, plt = pie(
             kernel_weighted_time,
@@ -91,10 +91,10 @@ else # postprocess profiling
         # colorbar
         if case == "cylinder"
             nc = length(kernel_weighted_time)
-            cbar = Colorbar(fig[1,2], colormap=cgrad(colors, categorical=true))
+            cbar = Colorbar(fig[1,2], colormap=cg)
             cbar.ticks = (range(0+1/2nc, 1-1/2nc, nc), string.(labels))
         end
-        global data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
+        data = mod.(kernel_weighted_time/sum(kernel_weighted_time),2π)
         for (i, c) in enumerate(colors)
             θ = (sum(data[1:i-1]) + 0.5*data[i])*2π
             x = 0.8*cos(θ)
