@@ -1,6 +1,6 @@
 using KernelAbstractions
 using CUDA
-# using AMDGPU
+using AMDGPU
 
 function parse_cla(args; cases=["tgv"], log2p=[(6,7)], max_steps=[100], ftype=[Float32], backend=Array)
     iarg(arg) = occursin.(arg, args) |> findfirst
@@ -38,6 +38,13 @@ end
 
 waterlily_dir = get(ENV, "WATERLILY_DIR", "")
 git_hash = read(`git -C $waterlily_dir rev-parse --short HEAD`, String) |> x -> strip(x, '\n')
+hostname_dict = Dict{String, String}("alogin" => "MN5", "uan" => "LUMI")
+hostname = gethostname()
+for (k,v) in hostname_dict
+    if occursin(k, hostname)
+        hostname = v
+    end
+end
 getf(str) = eval(Symbol(str))
 
 # Fancy logarithmic scale ticks for plotting
