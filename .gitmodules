@@ -1,0 +1,3 @@
+[submodule "jl/WaterLily-Benchmarks"]
+	path = jl/WaterLily-Benchmarks
+	url = git@github.com:WaterLily-jl/WaterLily-Benchmarks.git
