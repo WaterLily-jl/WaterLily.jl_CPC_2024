@@ -185,7 +185,7 @@ where $U=1$ is the characteristic velocity and $\kappa=2\pi/L$ is the wavenumber
 	\label{fig:benchmarks}
 \end{figure}
 
-The benchmark of the three cases is measured by timing the execution of 100 time steps using different backends, as displayed in \fref{fig:benchmarks}. On the CPU backend, it is noted that increasing the number of threads enables faster simulations in a linear trend that slowly stagnates to a factor of x8 speed-up for the TGV and sphere cases, and x6 on the cylinder case, on their respective finer grid. Except for the very small grids, the CPU backend does not yield a larger speed-up when increasing the grid size. In contrast, the speed-up of the GPU with respect to the serial CPU execution is greatly increased as the GPU VRAM is filled, reaching a peak of x200 speed-up factors for the TGV and sphere cases. The effect of improved performance when maximizing the GPU memory occupancy is also observed in other CFD codes \citep{Kempf2024}. Indeed, the overhead cost associated to launching a kernel becomes less important when maximizing the computational work of the kernel by increasing the grid size (and hence the required parallel workload). This trend of the GPU backend becomes more clear in \fref{fig:cost}, where the cost (ie. execution time per DOF and time step) significantly decreases with increasing grid size. Qualitatively, the cost transitions from being kernel-launch bounded to workload bounded for grids larger than 10M DOF.
+The benchmark of the three cases is measured by timing the execution of 100 time steps using different backends, as displayed in \fref{fig:benchmarks}. On the CPU backend, it is noted that increasing the number of threads enables faster simulations in a linear trend that slowly stagnates to a factor of x8 speed-up for the TGV and sphere cases, and x6 on the cylinder case, on their respective finer grid. Except for the very small grids, the CPU backend does not yield a larger speed-up when increasing the grid size. In contrast, the speed-up of the GPU with respect to the serial CPU execution is greatly increased as the GPU VRAM is filled, reaching a peak of x200 speed-up factors for the TGV and sphere cases. The effect of improved performance when maximizing the GPU memory occupancy is also observed in other CFD codes \citep{Kempf2024}. Indeed, the overhead cost associated to launching a kernel becomes less important when maximizing the computational work of the kernel by increasing the grid size (and hence the required parallel workload). This trend of the GPU backend becomes more clear by noting that the cost (ie. execution time per DOF and time step) significantly decreases with increasing grid size. Qualitatively, the cost transitions from being kernel-launch bounded to workload bounded for grids larger than 10M DOF.
 
 \begin{figure}[!t]
   \centering
@@ -199,7 +199,7 @@ The benchmark of the three cases is measured by timing the execution of 100 time
     \includegraphics[width=\linewidth]{img/sphere_profiling.pdf}
     \caption{Sphere\hspace*{2em}}
   \end{subfigure}
-  \begin{subfigure}[t]{0.32\linewidth}
+  \begin{subfigure}[t]{0.325\linewidth}
     \centering
     \subcaptionbox{Moving cylinder\hspace*{5em}}{%
       \includegraphics[width=\linewidth]{img/cylinder_profiling.pdf}%
