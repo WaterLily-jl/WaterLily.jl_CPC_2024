@@ -64,6 +64,8 @@ pdf_file = "../../tex/img/tgv_validation.pdf"
 
 data_dns = readdlm("data/tgv/TGV_Re1600.dat", skipstart=43)
 t_dns, E_dns, Z_dns = data_dns[:,1], data_dns[:,2], data_dns[:,3]
+cg = cgrad(:lightrainbow, length(ps), categorical=true)
+colors = [c for c in cg.colors]
 
 function main()
     if run
@@ -76,13 +78,13 @@ function main()
 
     p1 = plot(t_dns, E_dns, label=" DNS ", color=:black, linewidth=linewidth)
     p2 = plot(t_dns, Z_dns, label=" DNS ", color=:black, linewidth=linewidth)
-    for p in ps
+    for (c,p) in zip(colors,ps)
         E, Z, t = jldopen(joinpath(datadir,"p$p.jld2"))["E"], jldopen(joinpath(datadir,"p$p.jld2"))["Z"], jldopen(joinpath(datadir,"p$p.jld2"))["t"]
-        plot!(p1, t, E, label=L"~%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
-        plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
-        plot!(p2, t, Z, label=L"~%$(2^p)^3\,", linewidth=linewidth, linestyle=:dash)
-        plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
+        plot!(p1, t, E, label=L"~%$(2^p)^3", linewidth=linewidth, linestyle=:dash, color=c)
+        plot!(p2, t, Z, label=L"~%$(2^p)^3\,", linewidth=linewidth, linestyle=:dash, color=c)
     end
+    plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
+    plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
     plot(p1, p2, layout=(1, 2))
     fig_path = joinpath(string(@__DIR__), pdf_file)
     println("Figure stored in $(fig_path)")
