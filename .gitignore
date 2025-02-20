@@ -8,3 +8,5 @@ tex/build/
 tex/lite/
 tex/revision.md
 **/.vscode/
+jl/profiling/data
+jl/profiling/plots
