@@ -1,5 +1,0 @@
-*.qdstrm
-*.nsys-rep
-*.sqlite
-**/data*/
-Manifest.toml
