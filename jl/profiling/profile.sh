@@ -6,7 +6,7 @@ WB_DIR=$THIS_DIR"/../WaterLily-Benchmarks"
 
 DATA_DIR=$THIS_DIR"/data"
 PLOT_DIR=$THIS_DIR"/plots"
-TEX_IMG_DIR=$THIS_DIR"/../../tex/img/"
+TEX_IMG_DIR=$THIS_DIR"/../../tex/img"
 
 # Run profiling
 sh $WB_DIR/profile.sh -c "tgv sphere cylinder" -p "8 5 6" -s 1000 -r 2 -dd $DATA_DIR -pd $PLOT_DIR
