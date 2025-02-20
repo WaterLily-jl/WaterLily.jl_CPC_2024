@@ -14,9 +14,9 @@ Plots.default(
     bottom_margin = Plots.Measures.Length(:mm, 5),
     top_margin = Plots.Measures.Length(:mm, 5),
     titlefontsize = 20,
-    legendfontsize = 18,
-    tickfontsize = 18,
-    labelfontsize = 18,
+    legendfontsize = 20,
+    tickfontsize = 20,
+    labelfontsize = 20,
 )
 linewidth = 3
 

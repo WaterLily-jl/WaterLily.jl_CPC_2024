@@ -172,8 +172,7 @@ FUNCTION {output.bibitem}
 }
 
 FUNCTION {fin.entry}
-{ add.period$
-  write$
+{ write$
   newline$
 }
 
@@ -309,7 +308,7 @@ FUNCTION {format.names}
   s num.names$ 'numnames :=
   numnames 'namesleft :=
     { namesleft #0 > }
-    { s nameptr "{vv~}{ll}{, jj}{, ff}" format.name$ 't :=   % last name first
+    { s nameptr "{vv~}{ll}{, jj}{, f.}" format.name$ 't :=   % last name first
       nameptr #1 >
 	{ namesleft #1 >
 	    { ", " * t * }
@@ -416,7 +415,7 @@ FUNCTION {format.url}
 {
   url empty$
     { "" }
-    { "url: \url{" url * "}" * }
+    { "\href{" url * "}{\ttfamily " * url escape.url.characters * "}" * }
   if$
 }
 
