@@ -1,4 +1,3 @@
-using Revise
 using StaticArrays
 using CUDA
 using WaterLily
@@ -177,12 +176,12 @@ function main()
             )
             # cd_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
             # plot!(cd_plot, xlabel=L"$tU/D$", ylabel=L"$C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
-            # savefig(cd_plot, string(@__DIR__) * "../../../../tex/img/sphere_D$(D)_CD.pdf")
+            # savefig(cd_plot, string(@__DIR__) * "../../../tex/img/sphere_D$(D)_CD.pdf")
         end
     end
     hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")
     hline!(p_cd, [0.355], linestyle=:dashdot, color=:green, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
-    savefig(p_cd, string(@__DIR__) * "../../../../tex/img/sphere_validation.pdf")
+    savefig(p_cd, string(@__DIR__) * "../../../tex/img/sphere_validation.pdf")
 end
 
 main()
