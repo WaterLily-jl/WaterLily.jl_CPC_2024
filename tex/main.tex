@@ -80,7 +80,7 @@ During the last decade, the computational fluid dynamics (CFD) community has emb
     \makecell{STREAmS\\ \cite{Bernardini2021}} & \makecell{Compressible canonical wall-bounded flows\\ on rectilinear grids} & FDM & CUDA-Fortran \\
     \hline
 \end{tabular}
-\caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FEM), discontinuous Galerkin (DG), spectral element method (SEM), finite volume method (FVM), and flux reconstruction (FR).}\label{tab:solvers}
+\caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FDM), discontinuous Galerkin (DG), spectral element method (SEM), finite volume method (FVM), and flux reconstruction (FR).}\label{tab:solvers}
 \end{table}
 
 In this context, Julia \citep{Bezanson2017} emerges as an open-source, compiled, dynamic, and composable programming language specifically designed for scientific computing which can help tackle such software challenges. High-level libraries and low-level code can co-exist without compromising computing performance. Moreover, its excellent meta-programming capabilities, dynamic types, and multiple-dispatch strategy maximizes code re-usability. A great example of this is the \href{https://github.com/JuliaGPU/KernelAbstractions.jl}{KernelAbstractions.jl} library \citep{Churavy2023}, which enables writing heterogeneous kernels for different backends (multithreaded CPU, NVIDIA, AMD, and others) in a single framework.
@@ -265,7 +265,7 @@ rot(θ) = [cos(θ) -sin(θ); sin(θ) cos(θ)] # rotation matrix
 function drag_control_sim(ξ; D=96, Re=500, d_D=0.15f0, g_D=0.05f0)
     # set up big cylinder
     C, R, U = [2D, 0], D÷2, 1
-    big = AutoBody((x, t) -> √sum(abs2, x), x - C) - R) # signed-distance function
+    big = AutoBody((x, t) -> √sum(abs2, x - C) - R) # signed-distance function
 
     # set up small control cylinder
     r = d_D * R
