@@ -1,8 +1,4 @@
-using Revise
-include("../src/WaterLilyBenchmarks.jl")
-using .WaterLilyBenchmarks
 using WaterLily
-import WaterLily: CFL
 using CUDA
 using DelimitedFiles
 using Plots, StatsPlots, LaTeXStrings, CategoricalArrays, Printf, ColorSchemes
@@ -23,6 +19,17 @@ Plots.default(
     labelfontsize = 18,
 )
 linewidth = 3
+
+function tgv(p, backend; Re=1600, T=Float32)
+    L = 2^p; U = 1; κ=π/L; ν = 1/(κ*Re)
+    function uλ(i,xyz)
+        x,y,z = @. (xyz-0.0)/L*π
+        i==1 && return -U*sin(x)*cos(y)*cos(z)
+        i==2 && return  U*cos(x)*sin(y)*cos(z)
+        return 0.
+    end
+    Simulation((L, L, L), (0, 0, 0), 1/κ; U=U, uλ=uλ, ν=ν, T=T, mem=backend)
+end
 
 function EZ!(σ, u, ν, L)
     Ω = prod(size(inside(σ)))
