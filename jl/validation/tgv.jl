@@ -58,29 +58,35 @@ Re = 1600
 t_max = 20.0
 T = Float64
 backend = CuArray
-run = true
+run = false
 datadir = "data/tgv"
-pdf_file = "../../../tex/img/tgv_validation.pdf"
+pdf_file = "../../tex/img/tgv_validation.pdf"
 
 data_dns = readdlm("data/tgv/TGV_Re1600.dat", skipstart=43)
 t_dns, E_dns, Z_dns = data_dns[:,1], data_dns[:,2], data_dns[:,3]
 
-if run
-    mkpath(datadir)
-    for p in ps
-        E, Z, t = main(p, backend; Re=Re, T=T, t_max=t_max)
-        jldsave(joinpath(datadir,"p$p.jld2"); E=E, Z=Z, t=t)
+function main()
+    if run
+        mkpath(datadir)
+        for p in ps
+            E, Z, t = main(p, backend; Re=Re, T=T, t_max=t_max)
+            jldsave(joinpath(datadir,"p$p.jld2"); E=E, Z=Z, t=t)
+        end
     end
+
+    p1 = plot(t_dns, E_dns, label=" DNS ", color=:black, linewidth=linewidth)
+    p2 = plot(t_dns, Z_dns, label=" DNS ", color=:black, linewidth=linewidth)
+    for p in ps
+        E, Z, t = jldopen(joinpath(datadir,"p$p.jld2"))["E"], jldopen(joinpath(datadir,"p$p.jld2"))["Z"], jldopen(joinpath(datadir,"p$p.jld2"))["t"]
+        plot!(p1, t, E, label=L"~%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
+        plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
+        plot!(p2, t, Z, label=L"~%$(2^p)^3\,", linewidth=linewidth, linestyle=:dash)
+        plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
+    end
+    plot(p1, p2, layout=(1, 2))
+    fig_path = joinpath(string(@__DIR__), pdf_file)
+    println("Figure stored in $(fig_path)")
+    savefig(fig_path)
 end
 
-p1 = plot(t_dns, E_dns, label=" DNS ", color=:black, linewidth=linewidth)
-p2 = plot(t_dns, Z_dns, label=" DNS ", color=:black, linewidth=linewidth)
-for p in ps
-    E, Z, t = jldopen(joinpath(datadir,"p$p.jld2"))["E"], jldopen(joinpath(datadir,"p$p.jld2"))["Z"], jldopen(joinpath(datadir,"p$p.jld2"))["t"]
-    plot!(p1, t, E, label=L"~%$(2^p)^3", linewidth=linewidth, linestyle=:dash)
-    plot!(p1, xlabel=L"$t\pi/L$", ylabel="Kinetic energy", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.15), xlims=(0, 20))
-    plot!(p2, t, Z, label=L"~%$(2^p)^3\,", linewidth=linewidth, linestyle=:dash)
-    plot!(p2, xlabel=L"$t\pi/L$", ylabel="Dissipation", framestyle=:box, grid=true, size=(1200, 600), ylims=(0, 0.015), xlims=(0, 20), legend=false)
-end
-plot(p1, p2, layout=(1, 2))
-savefig(joinpath(string(@__DIR__), pdf_file))
+main()
