@@ -71,14 +71,14 @@ During the last decade, the computational fluid dynamics (CFD) community has emb
     \hline
     \makecell{CaNS\\ \cite{Costa2018}} & \makecell{Incompressible canonical flows on\\ rectilinear grids} & FDM & Fortran/OpenACC \\\hline
     \makecell{GAL{\AE}XI\\ \cite{Kempf2024}} & Compressible flows on unstructured grids & DG & CUDA-Fortran \\\hline
+    \makecell{\revC{MFC}\\ \cite{Bryngelson2021}} & \makecell{Compressible multi-phase flows\\ on structured grids} & FVM & Fortran+Fypp/OpenACC \\\hline
     \makecell{nekRS\\ \cite{Fischer2022}} & Incompressible flows on unstructured grids & SEM & C++/OCCA \\\hline
     \makecell{Oceananigans.jl\\ \cite{Ramadhan2020}} & Geophysical flows & FVM & Julia \\\hline
     \makecell{OpenSBLI\\ \cite{Lusher2021}} & \makecell{Code-generation system for compressible\\ flows on structured grids} & FDM & \makecell{Python +\\ CUDA/OpenCL} \\\hline
     \makecell{PyFR\\ \cite{Witherden2015}} & \makecell{Compressible/incompressible flows on\\ unstructured grids} & FR & \makecell{Python + C/OpenMP, \\ CUDA, OpenCL} \\\hline
     \makecell{RHEA\\ \cite{Jofre2023}} & Compressible flows on rectilinear grids & FDM & C++/OpenACC \\\hline
     \makecell{SOD2D\\ \cite{Gasparino2024}} & \makecell{Compressible/incompressible flows on\\ unstructured grids} & SEM & Fortran/OpenACC \\\hline
-    \makecell{STREAmS\\ \cite{Bernardini2021}} & \makecell{Compressible canonical wall-bounded flows\\ on rectilinear grids} & FDM & CUDA-Fortran \\
-    \hline
+    \makecell{STREAmS\\ \cite{Bernardini2021}} & \makecell{Compressible canonical wall-bounded flows\\ on rectilinear grids} & FDM & CUDA-Fortran \\\hline
 \end{tabular}
 \caption{Examples of multi-GPU open-source CFD solvers. Methods are abbreviated as: finite difference method (FDM), discontinuous Galerkin (DG), spectral element method (SEM), finite volume method (FVM), and flux reconstruction (FR).}\label{tab:solvers}
 \end{table}

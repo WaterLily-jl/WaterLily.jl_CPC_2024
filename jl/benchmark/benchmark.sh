@@ -9,7 +9,7 @@ DATA_DIR=$THIS_DIR"/data"
 PLOT_DIR=$THIS_DIR"/plots"
 TEX_IMG_DIR=$THIS_DIR"/../../tex/img"
 
-# Run profiling
+# Post-process profiling
 julia --project=$WB_DIR $WB_DIR/compare.jl --data_dir=$DATA_DIR --plot_dir=$PLOT_DIR --patterns=["tgv","sphere","cylinder"] \
     --speedup_base="CPUx01" --backend_color="lightrainbow" --sort=9
 
