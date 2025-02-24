@@ -28,9 +28,12 @@ const y_lims = (1e9, 1e14)
 
 y_mem(x) = mem_bandwidth*x/1e12
 
-kern_395_fp32 = (0.54, 128052e6/1e12)
-kern_451_fp32 = (0.61, 81288e6/1e12)
-kern_451_fp64 = (0.15, 20322e6/1e12)
+kern_395_fp32_fine = (0.54, 128052e6/1e12)
+kern_451_fp32_fine = (0.61, 81288e6/1e12)
+kern_451_fp64_fine = (0.15, 20322e6/1e12)
+kern_395_fp32_coarse = (0.55, 116743e6/1e12)
+kern_451_fp32_coarse = (0.73, 81190e6/1e12)
+kern_451_fp64_coarse = (0.18, 20047e6/1e12)
 
 p = plot(ylabel="Performance [TFLOP/s]", xlabel="Arithmetic Intensity [FLOP/byte]",
     ylims=y_lims./1e12, xlims=x_lims, yminorgrid=true, xminorgrid=true,
@@ -43,7 +46,12 @@ plot!(p, [x_lims[1], min_AI_fp32], [max_perf_fp32/1e12, max_perf_fp32/1e12], lin
 plot!(p, [min_AI_fp64, x_lims[2]], [max_perf_fp64/1e12, max_perf_fp64/1e12], linewidth=2, color=:grey, primary=false)
 plot!(p, [x_lims[1], min_AI_fp64], [max_perf_fp64/1e12, max_perf_fp64/1e12], linewidth=2, color=:grey, linestyle=:dash, primary=false)
 
-scatter!(p, kern_395_fp32, ms=7, ma=1, color=:lightgreen, label="kernel_395 FP32", markershape=:diamond)
-scatter!(p, kern_451_fp32, ms=7, ma=1, color=:lightblue, label="kernel_451 FP32", markershape=:diamond)
-scatter!(p, kern_451_fp64, ms=7, ma=1, color=:lightblue, label="kernel_451 FP64")
+scatter!(p, kern_395_fp32_coarse, ms=7, ma=1, color=:green, label="kernel_395 FP32 G2", markershape=:diamond)
+scatter!(p, kern_451_fp32_coarse, ms=7, ma=1, color=:blue, label="kernel_451 FP32 G2", markershape=:diamond)
+scatter!(p, kern_451_fp64_coarse, ms=7, ma=1, color=:blue, label="kernel_451 FP64 G2")
+
+scatter!(p, kern_395_fp32_fine, ms=7, ma=1, color=:lightgreen, label="kernel_395 FP32", markershape=:diamond)
+scatter!(p, kern_451_fp32_fine, ms=7, ma=1, color=:lightblue, label="kernel_451 FP32", markershape=:diamond)
+scatter!(p, kern_451_fp64_fine, ms=7, ma=1, color=:lightblue, label="kernel_451 FP64")
+
 savefig(p, joinpath(string(@__FILE__), "../../../tex/img/roofline_cylinder.pdf"))
