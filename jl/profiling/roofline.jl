@@ -3,8 +3,7 @@
 using Plots
 
 
-fontsize = 16
-speedup_fontsize = 16
+fontsize = 11
 Plots.default(
     fontfamily = "Computer Modern",
     linewidth = 1,
@@ -12,9 +11,9 @@ Plots.default(
     grid = false,
     left_margin = Plots.Measures.Length(:mm, 5),
     right_margin = Plots.Measures.Length(:mm, 10),
-    # bottom_margin = Plots.Measures.Length(:mm, 5),
-    # top_margin = Plots.Measures.Length(:mm, 5),
-    legendfontsize = fontsize-4,
+    bottom_margin = Plots.Measures.Length(:mm, 5),
+    top_margin = Plots.Measures.Length(:mm, 5),
+    legendfontsize = fontsize-1,
     tickfontsize = fontsize,
     labelfontsize = fontsize,
 )
@@ -44,7 +43,7 @@ plot!(p, [x_lims[1], min_AI_fp32], [max_perf_fp32/1e12, max_perf_fp32/1e12], lin
 plot!(p, [min_AI_fp64, x_lims[2]], [max_perf_fp64/1e12, max_perf_fp64/1e12], linewidth=2, color=:grey, primary=false)
 plot!(p, [x_lims[1], min_AI_fp64], [max_perf_fp64/1e12, max_perf_fp64/1e12], linewidth=2, color=:grey, linestyle=:dash, primary=false)
 
-scatter!(p, kern_395_fp32, ms=5, ma=1, color=:lightgreen, label="kernel_395 FP32", markershape=:diamond)
-scatter!(p, kern_451_fp32, ms=5, ma=1, color=:lightblue, label="kernel_451 FP32", markershape=:diamond)
-scatter!(p, kern_451_fp64, ms=5, ma=1, color=:lightblue, label="kernel_451 FP64")
-savefig(p, joinpath(string(@__FILE__), "../../../tex/img/roofline.pdf"))
+scatter!(p, kern_395_fp32, ms=7, ma=1, color=:lightgreen, label="kernel_395 FP32", markershape=:diamond)
+scatter!(p, kern_451_fp32, ms=7, ma=1, color=:lightblue, label="kernel_451 FP32", markershape=:diamond)
+scatter!(p, kern_451_fp64, ms=7, ma=1, color=:lightblue, label="kernel_451 FP64")
+savefig(p, joinpath(string(@__FILE__), "../../../tex/img/roofline_cylinder.pdf"))
