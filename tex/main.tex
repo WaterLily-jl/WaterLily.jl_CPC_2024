@@ -248,7 +248,7 @@ For the sphere case, a domain of $7D\times3D\times3D$ is considered for validati
 \begin{equation*}
     y = A_y\sin(\omega t), \quad x = A_x\sin(2\omega t+\theta)
 \end{equation*}
-and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$ and $\omega=\frac{2\pi}{5.4} U/D$ where $U,D$ are in flow velocity (in the $x$ direction) and cylinder diameter, respectively and the Reynolds number is $Re_D=7620$. We use a domain of $4n \times 2n \times n$, where $n=2^7$ cells, giving 16.7M cells overall. The domain boundary conditions are periodic in $z$, reflection in $y$, and inlet/exit conditions in $x$. The cylinder spans the full $z$ domain, is place $n$ cells away from the side and inlet boundaries and has a diameter of $D=n/4$. Figure \ref{fig:cyl_val}(a) shows the cylinder path and resulting vorticity field showing an extremely energetic 3D wake.  Figure \ref{fig:cyl_val}(b) shows the measured force and power coefficients, along with the phase-averaged experimental measurements force coefficients. The agreement is excellent, and the mean power coefficient of $C_p=-4.49$ is within 1\% of the measure mean of -$4.52$ for this case.}
+and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$ and $\omega=\frac{2\pi}{5.4} U/D$ where $U,D$ are the inflow velocity and cylinder diameter, respectively, and the Reynolds number is $Re_D=7620$. We use a domain of $4n \times 2n \times n$, where $n=2^7$ cells, giving 16.7M cells overall. The domain boundary conditions are periodic in $z$, reflection in $y$, and inlet/exit conditions in $x$. The cylinder spans the full $z$ domain, is placed $n$ cells away from the side and inlet boundaries and has a diameter of $D=n/4$. Figure \ref{fig:cyl_val}(a) shows the cylinder path and resulting vorticity field showing an extremely energetic 3D wake.  Figure \ref{fig:cyl_val}(b) shows the measured force and power coefficients, along with the phase-averaged experimental measurements force coefficients. The agreement is excellent, and the mean power coefficient of $\overline{C_P}=-4.49$ is within 1\% of the experimentally measured mean of -$4.52$ for this case.}
 
 \begin{figure}[!t]
     \centering
@@ -266,18 +266,16 @@ and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$
 \end{figure}
 
 \begin{figure}[!t]
-  \centering
-    \begin{subfigure}[t]{0.48\linewidth}
-        \centering
-        \includegraphics[width=\linewidth,trim={50 70 20 210},clip]{img/SpinCylFlood.pdf}
-        \vspace{-1cm}
-        \caption{Vorticity field}
+    \begin{subfigure}{0.48\linewidth}
+      \center
+        \includegraphics[width=\linewidth,trim={50 30 20 30},clip]{tex/img/OscCyl_flow.pdf}
+        \caption{Cylinder path and spanwise-averaged vorticity field}
     \end{subfigure}
-    \begin{subfigure}[b]{0.48\linewidth}
-        \includegraphics[width=\linewidth]{img/SpinCylHist.pdf}
-        \vspace{-1cm}
-        \caption{Scaled power history}
-    \end{subfigure}\hspace{20pt}
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{tex/img/OscCyl_hist.pdf}
+        \caption{Force and power coefficients over four cycles}
+    \end{subfigure}
   \caption{Oscillating cylinder validation.}
   \label{fig:cyl_val}
 \end{figure}
@@ -426,7 +424,7 @@ In this work, an incompressible viscous flow solver written in the Julia languag
 
 Based on three different cases (TGV, fixed sphere, and moving cylinder), benchmarking results show that execution on a modern GPUs \revA{can yield two orders of magnitude speed-up factors compared to serial CPU execution}. \revC{Profiling on a GPU backend shows that the pressure solver and the convection-diffusion routines incur the highest cost during a time step. Additionally, performance analysis based on the roofline model shows that the solver is bounded by the memory bandwidth of the GPU}. Furthermore, validation results demonstrate the accuracy of the solver on the three test cases. \revB{As the immersed boundary cases use AD within the solver to determine the normals and curvatures of the immersed geometry, these cases also validate the AD application.}
 
-In addition, we provide an example of the AD capabilities of the solver with the classical rotating cylinder control problem. The optimal spinning rate of the small cylinder controlling the wake of the large static cylinder is found with a few optimization steps based on the scaled propulsive power derivative. Finally, the possibility of simulating complex dynamic bodies is showed with a jellyfish-inspired geometry that heaves while also expanding and contracting, and a parametrically-defined flapping whale tail. Future work will focus on the parallelization of the solver at the distributed-memory level using the message passing interface (MPI) standard, the inclusion of multiphase flow simulation through the volume-of-fluid method, and the continuous improvement of the performance of the solver.
+In addition, we provide an example of using the differentiable solver to optimize the flow control using rotating cylinders. The derivative of the propulsive power coefficient is used to quickly optimize the spinning rate of the small cylinder controlling the wake of the large static cylinder for maximum thrust with minimum power. Finally, the possibility of simulating complex dynamic bodies is showed with a jellyfish-inspired geometry that heaves while also expanding and contracting, and a parametrically-defined flapping whale tail. Future work will focus on the parallelization of the solver at the distributed-memory level using the message passing interface (MPI) standard, the inclusion of multiphase flow simulation through the volume-of-fluid method, and the continuous improvement of the performance of the solver.
 
 \section{Acknowledgements}\label{sec:acknowledgements}
 The authors acknowledge the Barcelona Supercomputing Center for awarding access to the MareNostrum5 system. The authors also acknowledge Dr. Valentin Churavy for creating KernelAbstractions.jl and his continued support, and Dr. Lucas Gasparino for fruitful discussions and initial tests on his personal GPU.
