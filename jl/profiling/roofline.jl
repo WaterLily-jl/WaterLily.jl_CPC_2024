@@ -45,7 +45,7 @@ kern_451_fp64_G3 = (0.15, 20322e6)
 
 p = plot(ylabel="Performance [TFLOP/s]", xlabel="Arithmetic Intensity [FLOP/byte]",
     ylims=y_lims./1e12, xlims=x_lims, yminorgrid=true, xminorgrid=true,
-    yaxis=:log10, xaxis=:log10, legend=:bottomright, background_color_legend=RGBA{Float64}(1, 1, 1, 0.7)
+    yaxis=:log10, xaxis=:log10, legend=:bottomright, background_color_legend=RGBA{Float64}(1, 1, 1, 1)
 )
 # fancylogscale!(p)
 plot!(p, y_mem_normed, linewidth=2, color=:darkblue, primary=false)
@@ -55,25 +55,25 @@ plot!(p, [min_AI_fp64, x_lims[2]], [max_perf_fp64/1e12, max_perf_fp64/1e12], lin
 plot!(p, [x_lims[1], min_AI_fp64], [max_perf_fp64/1e12, max_perf_fp64/1e12], linewidth=2, color=:grey, linestyle=:dash, primary=false)
 
 scatter!(p, norm_point(kern_395_fp32_G1), label=@sprintf("project!   0.44M FP32 %d", bandwidth_pc(kern_395_fp32_G1))*"%",
-    ms=markersize, ma=1, color=:lightyellow, markershape=:diamond, alpha=fc)
+    ms=markersize, ma=1, color=:yellow, markershape=:diamond, alpha=fc)
 scatter!(p, norm_point(kern_395_fp32_G2), label=@sprintf("project!   3.54M FP32 %d", bandwidth_pc(kern_395_fp32_G2))*"%",
-    ms=markersize, ma=1, color=:green, markershape=:diamond, alpha=fc)
-scatter!(p, norm_point(kern_395_fp32_G3), label=@sprintf("project!  28.31M FP32 %d", bandwidth_pc(kern_395_fp32_G3))*"%",
     ms=markersize, ma=1, color=:lightgreen, markershape=:diamond, alpha=fc)
+scatter!(p, norm_point(kern_395_fp32_G3), label=@sprintf("project!  28.31M FP32 %d", bandwidth_pc(kern_395_fp32_G3))*"%",
+    ms=markersize, ma=1, color=:green, markershape=:diamond, alpha=fc)
 
 scatter!(p, norm_point(kern_451_fp32_G1), label=@sprintf("convdiff!  0.44M FP32 %d", bandwidth_pc(kern_451_fp32_G1))*"%",
-    ms=markersize, ma=1, color=:cyan, markershape=:diamond)
+    ms=markersize, ma=1, color=:berlin10, markershape=:diamond)
 scatter!(p, norm_point(kern_451_fp32_G2), label=@sprintf("convdiff!  3.54M FP32 %d", bandwidth_pc(kern_451_fp32_G2))*"%",
-    ms=markersize, ma=1, color=:blue, markershape=:diamond)
+    ms=markersize, ma=1, color=:cyan, markershape=:diamond)
 scatter!(p, norm_point(kern_451_fp32_G3), label=@sprintf("convdiff! 28.31M FP32 %d", bandwidth_pc(kern_451_fp32_G3))*"%",
-    ms=markersize, ma=1, color=:lightblue, markershape=:diamond)
+    ms=markersize, ma=1, color=:blue, markershape=:diamond)
 
 scatter!(p, norm_point(kern_451_fp64_G1), label=@sprintf("convdiff!  0.44M FP64 %d", bandwidth_pc(kern_451_fp64_G1))*"%",
-    ms=markersize, ma=1, color=:cyan)
+    ms=markersize, ma=1, color=:berlin10)
 scatter!(p, norm_point(kern_451_fp64_G2), label=@sprintf("convdiff!  3.54M FP64 %d", bandwidth_pc(kern_451_fp64_G2))*"%",
-    ms=markersize, ma=1, color=:blue)
+    ms=markersize, ma=1, color=:cyan)
 scatter!(p, norm_point(kern_451_fp64_G3), label=@sprintf("convdiff! 28.31M FP64 %d", bandwidth_pc(kern_451_fp64_G3))*"%",
-    ms=markersize, ma=1, color=:lightblue)
+    ms=markersize, ma=1, color=:blue)
 
 
 
