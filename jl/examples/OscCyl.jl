@@ -1,11 +1,12 @@
-using WaterLily, StaticArrays, CUDA, TypedTables, ForwardDiff, JLD2
+using WaterLily, StaticArrays, CUDA, TypedTables, ForwardDiff, Random, JLD2
+Random.seed!(1234)
 
 function OscCyl(;Re=4000,U=1,Vr=5,Ay_D=0.4,Ax_D=0.0,θ=0.,    # physical
                 n=2^7,T=Float32,mem=Array,                   # numerical
                 t₀=4Vr,duration=4Vr,step=Vr/100,verbose=true, # printing
                 run=true)
     # Set up sizes, frequency and mapping
-    D,H = n/5,n; ω = 2π*U/(Vr*D)
+    D,H = n/6,n; ω = 2π*U/(Vr*D)
     verbose && println("n=$n, D=$D, H=$H, ω=$ω")
     sdf(x,t) = hypot(x[1]-n,x[2]-n) - D/2
     map(x,t) = x - SA[Ax_D*D*sin(2ω*t + θ), Ay_D*D*sin(ω*t), 0]
@@ -57,8 +58,9 @@ write!(fname, a; dir="./") = jldsave(
 )
 
 p = 7
+Vr = 5.4
 run = true
-data, sim = OscCyl(n=2^p,Re=7620,Ay_D=1.6,Ax_D=0.4,θ=π/6,Vr=5.4,mem=CUDA.CuArray,run=run);
+data, sim = OscCyl(n=2^p,Re=7620,Ay_D=1.6,Ax_D=0.4,θ=π/6,Vr=Vr,mem=CUDA.CuArray,run=run,t₀=8Vr,duration=8Vr);
 if run
     write!("data_p$p", data)
     write!("u_p$p", sim.flow.u)
@@ -89,7 +91,7 @@ Plots.default(
 Cpow(p) = p.Cx*p.u+p.Cy*p.v
 mCpow(data) = sum(Cpow(data[i])*(data.t[i+1]-data.t[i]) for i in eachindex(data)[1:end-1])/(data.t[end]-data.t[1])
 hist(data) = plot(data.t,[data.Cy data.Cx Cpow.(data)],label=[L"$C_y$" L"$C_x$" L"$\overline{C}_P$"*" = $(-round(mCpow(data),digits=3))"],xlabel=L"$tU/D$")
-hist(data);plot!(xlims=(25,40), ylims=(-10,10), legend=:bottomright, background_color_legend=RGBA{Float64}(1, 1, 1, 0.9),
+hist(data);plot!(xlims=(45,80), ylims=(-10,10), legend=:bottomright, background_color_legend=RGBA{Float64}(1, 1, 1, 0.9),
     grid=true)
 savefig("OscCyl_hist_p$p.pdf")
 

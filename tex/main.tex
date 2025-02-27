@@ -248,7 +248,7 @@ For the sphere case, a domain of $7D\times3D\times3D$, \revC{where $D$ is the sp
 \begin{equation*}
     y = A_y\sin(\omega t), \quad x = A_x\sin(2\omega t+\theta)
 \end{equation*}
-and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$ and $\omega=\frac{2\pi}{5.4} U/D$ where $U,D$ are the inflow velocity and cylinder diameter, respectively, and the Reynolds number is $Re_D=7620$. The numerical domain is set to $4n \times 2n \times n$, where $n=2^7$ cells, giving 16.8M cells overall. Symmetry conditions are applied on all the domain boundaries other than the exit, which uses a convective outflow condition. The cylinder spans the full $z$ domain, is placed $n$ cells away from the side and inlet boundaries, and has a diameter of $D=n/5$. Figure \ref{fig:cyl_val}(a) shows the cylinder path and resulting vorticity field showing an extremely energetic 3D wake.  Figure \ref{fig:cyl_val}(b) shows the measured force and power coefficients, and the mean power coefficient of $\overline{C_P}=-4.49$ is within 1\% of the experimentally measured mean of -$4.52$ for this case.}
+and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$ and $\omega=\frac{2\pi}{5.4} U/D$ where $U,D$ are the inflow velocity and cylinder diameter, respectively, and the Reynolds number is $Re_D=7620$. The numerical domain is set to $4n \times 2n \times n$, where $n=2^7$ cells, giving 16.8M cells overall. Symmetry conditions are applied on all the domain boundaries other than the exit, which uses a convective outflow condition. The cylinder spans the full $z$ domain, is placed $n$ cells away from the side and inlet boundaries, and has a diameter of $D=n/5$. Figure \ref{fig:cyl_val}(a) shows the cylinder path and resulting vorticity field showing an extremely energetic 3D wake.  Figure \ref{fig:cyl_val}(b) shows the measured force and power coefficients, and the mean power coefficient of $\overline{C_P}=-4.39$ is within 3\% of the experimentally measured mean of -$4.52$ for this case.}
 
 \begin{figure}[!t]
     \centering
@@ -266,14 +266,14 @@ and we pick a large amplitude cases where $A_y=1.6D$, $A_x=0.4D$, $\theta=\pi/6$
 \end{figure}
 
 \begin{figure}[!t]
-    \begin{subfigure}{0.48\linewidth}
+    \begin{subfigure}{0.5\linewidth}
       \center
-        \includegraphics[width=\linewidth,trim={50 30 20 30},clip]{img/OscCyl_flow.pdf}
+        \includegraphics[width=1\linewidth,trim={50 40 20 40},clip]{img/OscCyl_flow_p7.pdf}
         \caption{Cylinder path and spanwise-averaged vorticity field}
     \end{subfigure}
     \begin{subfigure}{0.48\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{img/OscCyl_hist.pdf}
+        \includegraphics[width=0.9\linewidth]{img/OscCyl_hist_p7.pdf}
         \caption{Force and power coefficients over four cycles}
     \end{subfigure}
   \caption{Oscillating cylinder validation. The wake is highly three-dimensional and turbulent, but spanwise-averaging helps visualize the main vortex structures and the integrated forces are still smooth.}
