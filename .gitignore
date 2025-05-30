@@ -7,7 +7,7 @@
 tex/build/
 tex/lite/
 **/.vscode/
-jl/profiling/data
-jl/profiling/plots
-jl/benchmark/plots
+jl/profiling/data*
+jl/profiling/plots*
+jl/benchmark/plots*
 rev/
