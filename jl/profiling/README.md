@@ -1,0 +1,7 @@
+# Profiling
+
+Profiling has been conducted using the automated WaterLily benchmarking suite, [WaterLily-Benchmarks](https://github.com/WaterLily-jl/WaterLily-Benchmarks), which is also included in this repository as a git submodule. The `cpc` branch of WaterLily-Benchmarks is specifically designed to produce the plots shown in the manuscript. Use `git clone --recurse-submodule --remote-submodules https://github.com/WaterLily-jl/WaterLily.jl_CPC_2024` to clone this repository together with the WaterLily-Benchmarks git submodule.
+
+The [profile.sh](profile.sh) script is used to run WaterLily-Benchmarks and generate the data. The profiling data displayed in the manuscript has been obtained on an NVIDIA GeForce RTX 4060 laptop GPU. The data is available in [4TU.ResearchData](https://doi.org/10.4121/f5bf6c46-8fbd-42b8-afb6-5eb356eae2e2). The [Manifest.toml](Manifest.toml) file specifies the package versions used for profiling.
+
+Once the profiling data is collected, the [roofline.jl] script can be used to generate figure 3a in the manuscript. Figure 3b is a screenshot of the NVIDIA Nsight Compute UI visualizing the kernels time range of the moving cylinder test case using the 3rd grid level, ie. file `data/cylinder/cylinder.nsys-rep`.
