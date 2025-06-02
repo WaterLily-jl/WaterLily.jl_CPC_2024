@@ -1,0 +1,7 @@
+# Benchmark
+
+Benchmarks have been conducted using the automated WaterLily benchmarking suite, [WaterLily-Benchmarks](https://github.com/WaterLily-jl/WaterLily-Benchmarks), which is also included in this repository as a [git submodule](../WaterLily-Benchmarks/). The `cpc` branch of WaterLily-Benchmarks is specifically designed to produce the plots shown in the manuscript.
+
+To generate the benchmarks results, available in [data](./data), the MareNostrum5 (MN5) and LUMI supercomputers have been used. The benchmark job files are [job_benchmark_mn5.sh](../WaterLily-Benchmarks/job_benchmark_mn5.sh) and [job_benchmark_lumi.sh](../WaterLily-Benchmarks/Manifest-v1.4.0-benchmarks-lumi.toml), respectively, noting that the CPU and NVIDIA-GPU results are obtained in MN5, and the AMD-GPU results in LUMI. Details for all benchmarks can be found in the job scripts.
+
+Once the benchmark data is collected, [benchmark.sh](benchmark.sh) can be used to generate figures 1 and 2 in the manuscript.
