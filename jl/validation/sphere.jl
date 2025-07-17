@@ -1,10 +1,11 @@
-using StaticArrays
-using CUDA
-using WaterLily
-using ReadVTK, WriteVTK
-using FFTW, Interpolations, JLD2, Plots, LaTeXStrings, Printf, DSP
-import Base: time
+using Printf, StaticArrays, CUDA, JLD2, Plots, LaTeXStrings, WaterLily
 
+# Utils
+iarg(arg) = occursin.(arg, ARGS) |> findfirst
+iarg(arg, args) = occursin.(arg, args) |> findfirst
+arg_value(arg) = split(ARGS[iarg(arg)], "=")[end]
+arg_value(arg, args) = split(args[iarg(arg, args)], "=")[end]
+metaparse(x) = eval(Meta.parse(x))
 Plots.default(
     fontfamily = "Computer Modern",
     linewidth = 1,
@@ -20,171 +21,158 @@ Plots.default(
     labelfontsize = 14,
 )
 
-function sphere(D, backend; L=(8,2,2), center=SA[2,1,1], Re=3700, T=Float32)
-    U = 1; ν = U*D/Re
-    body = AutoBody((x,t)-> √sum(abs2, x .- (center .* D)) - D/2)
-    Simulation(L.*D, (U, 0, 0), D; U=U, ν=ν, body=body, T=T, mem=backend, exitBC=true)
+# Params
+T = Float32
+mem = !isnothing(iarg("mem", ARGS)) ? arg_value("mem", ARGS) |> x -> eval(Symbol(x)) : CuArray
+U = 1
+Re = 3700
+Ds = [88, 128, 168]
+D = !isnothing(iarg("D", ARGS)) ? arg_value("D", ARGS) |> metaparse : 88 # diameter resolution [88,128,168]
+Lc = !isnothing(iarg("Lc", ARGS)) ? arg_value("Lc", ARGS) |> metaparse : 3 # domain side length [3,6]
+L = (7,Lc,Lc) # domain size in D: (7,3,3), (7,6,6)
+center = (1.5,L[2]/2,L[3]/2)
+probe_loc = (4.5,center[2]+1/2,center[3]+1/2)
+half_domain = D * L[2] ÷ 2
+
+time_max = 400 # in CTU
+stats_init = 100 # in CTU
+stats_interval = 0.1 # in CTU
+save_interval = 50 # in CTU
+
+data_dir = !isnothing(iarg("datadir", ARGS)) ? arg_value("datadir", ARGS) |> String : "data/sphere/"
+load_time = !isnothing(iarg("loadtime", ARGS)) ? arg_value("loadtime", ARGS) |> metaparse : nothing
+fname_save = joinpath(data_dir,"D$(D)_Lc$(Lc)")
+pdf_file = "../../tex/img/sphere_validation.pdf"
+restart = nothing
+restart_stats = nothing
+restart_signals = nothing
+
+run_flag = !isnothing(iarg("run", ARGS)) ? arg_value("run", ARGS) |> metaparse : true
+plot_flag = !isnothing(iarg("plot", ARGS)) ? arg_value("plot", ARGS) |> metaparse : false
+
+# I/O
+function save_sim(sim, meanflow, force, probe, t)
+    t_str = @sprintf("%i", sim_time(sim))
+    save!(fname_save * "_t$(t_str).jld2", sim)
+    save!(fname_save * "_t$(t_str)_meanflow.jld2", meanflow)
+    jldsave(fname_save * "_t$(t_str)_signals.jld2"; force, probe, t)
+end
+function read_forces(fname)
+    obj = jldopen(fname)
+    return obj["force"], obj["probe"], obj["t"]
+end
+# Metrics
+recirculation_length(U; Cu=1.5) = findfirst(axes(U,1)) do i
+    (U[i,half_domain,half_domain,1] < 0) && (U[i+1,half_domain,half_domain,1] >= 0)
+end |> i -> i/D-Cu
+
+# Sphere
+function sphere(D; Re=3700, U=1, L=(7,3,3), center=(1.5,1.5,1.5), mem=CuArray, T=Float32)
+    center = SA{T}[center...]
+    body = AutoBody((x,t) -> √sum(abs2, x .- (center .* D)) - D÷2)
+    Simulation(L.*D, (U, 0, 0), D; U, ν=U*D/Re, body, mem, T, exitBC=true)
 end
 
-struct MeanFlow{T, Sf<:AbstractArray{T}, Vf<:AbstractArray{T}, Mf<:AbstractArray{T}}
-    P :: Sf # pressure scalar field
-    U :: Vf # velocity vector field
-    UU :: Mf # squared velocity tensor
-    τ :: Mf # Reynolds stress tensor
-    t :: Vector{T} # time
-    function MeanFlow(flow::Flow{D,T}; t_init=0.0) where {D,T}
-        f = typeof(flow.u).name.wrapper
-        P = zeros(T, size(flow.p)) |> f
-        U = zeros(T, size(flow.u)) |> f
-        UU = zeros(T, size(flow.p)...,D,D) |> f
-        τ = zeros(T, size(UU)) |> f
-        new{T,typeof(P),typeof(U),typeof(UU)}(P,U,UU,τ,T[t_init])
-    end
-end
-time(meanflow::MeanFlow) = meanflow.t[end]-meanflow.t[1]
-function reset!(meanflow::MeanFlow; t_init=0.0)
-    fill!(meanflow.P, 0); fill!(meanflow.U, 0); fill!(meanflow.UU, 0); fill!(meanflow.τ, 0)
-    deleteat!(meanflow.t, collect(1:size(meanflow.t)[1]))
-    push!(meanflow.t, t_init)
-end
-function load!(meanflow::MeanFlow, fname::String; dir="data/")
-    obj = jldopen(dir*fname)
-    f = typeof(meanflow.U).name.wrapper
-    meanflow.P .= obj["P"] |> f
-    meanflow.U .= obj["U"] |> f
-    meanflow.UU .= obj["UU"] |> f
-    meanflow.τ .= obj["τ"] |> f
-    meanflow.t .= obj["t"]
-end
-function write!(fname, meanflow::MeanFlow; dir="data/", vtk=false, sim=nothing)
-    jldsave(dir*fname*".jld2";
-        P=Array(meanflow.P),
-        U=Array(meanflow.U),
-        UU=Array(meanflow.UU),
-        τ=Array(meanflow.τ),
-        t=meanflow.t)
-    if vtk && sim isa Simulation
-        copy!(sim.flow, meanflow)
-        wr = vtkWriter(fname; dir=dir)
-        WaterLily.write!(wr, sim)
-        close(wr)
-    end
-end
-function update!(meanflow::MeanFlow, flow::Flow; stats_turb=true)
-    dt = WaterLily.time(flow) - meanflow.t[end]
-    ε = dt / (dt + (meanflow.t[end] - meanflow.t[1]) + eps(eltype(flow.p)))
-    WaterLily.@loop meanflow.P[I] = ε*flow.p[I] + (1.0 - ε)*meanflow.P[I] over I in CartesianIndices(flow.p)
-    WaterLily.@loop meanflow.U[Ii] = ε*flow.u[Ii] + (1.0 - ε)*meanflow.U[Ii] over Ii in CartesianIndices(flow.u)
-    if stats_turb
-        for i in 1:ndims(flow.p), j in 1:ndims(flow.p)
-            WaterLily.@loop meanflow.UU[I,i,j] = ε*(flow.u[I,i].*flow.u[I,j]) + (1.0 - ε)*meanflow.UU[I,i,j] over I in CartesianIndices(flow.p)
-            WaterLily.@loop meanflow.τ[I,i,j] = meanflow.UU[I,i,j] - meanflow.U[I,i,j]*meanflow.U[I,i,j] over I in CartesianIndices(flow.p)
-        end
-    end
-    push!(meanflow.t, meanflow.t[end] + dt)
-end
-function copy!(a::Flow, b::MeanFlow)
-    a.u .= b.U
-    a.p .= b.P
-end
-function read_forces(fname::String; dir="data/")
-    obj = jldopen(dir*fname)
-    return obj["force"], obj["u_probe"], obj["time"]
-end
+function run_sim(D; Re=3700, U=1, L=(7,3,3), center=(1.5,1.5,1.5), mem=CuArray, T=Float32,
+    restart=nothing, restart_stats=nothing, restart_signals=nothing)
 
-function run_sim(D, backend; L=(7,3,3), center=SA[1.5,1.5,1.5], u_probe_loc=(4.5,2.1,1.5), u_probe_component=2, Re=3700, T=Float32, restart=false)
-    sim = sphere(D, backend; L, center, Re, T)
-    meanflow = MeanFlow(sim.flow)
-    force,u_probe,time = Vector{T}[],T[] ,T[] # force coefficients, u probe location, time
-    u_probe_loc_n = @. (u_probe_loc * sim.L) |> floor |> Int
+    sim = sphere(D; Re, U, L, center, mem, T)
+
+    force, probe, t = Vector{T}[], T[], T[] # force coefficients, velocity probe, time
+    probe_loc_i = @. (probe_loc * sim.L) |> floor |> Int
+
+    if !isnothing(restart)
+        load!(sim; fname=restart)
+        println("Loaded: $restart")
+    end
+    sim_step!(sim, stats_init; remeasure=false, verbose=true)
+
+    meanflow = MeanFlow(sim.flow; uu_stats=true)
+    if !isnothing(restart_stats)
+        load!(meanflow; fname=restart_stats)
+        println("Loaded: $restart_stats")
+        force, probe, t = read_forces(restart_signals)
+        println("Loaded: $restart_signals")
+    end
+
+    println("\nComputing mean flow statistics from: T=$(sim_time(sim))\n\
+    Total accumulated: T=$(WaterLily.time(meanflow)*sim.U/sim.L)\n\
+    Remaining: T=$(time_max-stats_init-WaterLily.time(meanflow)*sim.U/sim.L)\n")
+
+    next_save = sim_time(sim) + save_interval
     while sim_time(sim) < time_max
         sim_step!(sim, sim_time(sim)+stats_interval; remeasure=false, verbose=false)
-        # Force stats
-        push!(force, WaterLily.total_force(sim)/(0.5*sim.U^2*sim.L^2))
-        push!(u_probe, view(sim.flow.u,u_probe_loc_n...,u_probe_component) |> Array |> x->x[]) # WaterLily.interp(SA[7D,5D,4D], sim.flow.u[:,:,:,1]))
-        push!(time, sim_time(sim))
-        cd = round(force[end][1],digits=4)
-        verbose && println("tU/D = $(time[end]); Cd = $cd")
-        if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
-            verbose && println("Writing force and probe values")
-            jldsave(datadir*"force_D$D.jld2"; force=force, time=time, u_probe=u_probe)
-        end
-        # Mean flow stats
-        if stats && sim_time(sim) > stats_init
-            length(meanflow.t) == 1 && reset!(meanflow; t_init=WaterLily.time(sim))
-            verbose && println("Computing stats")
-            update!(meanflow, sim.flow; stats_turb=stats_turb)
-            if WaterLily.sim_time(sim)%dump_interval < sim.flow.Δt[end]*sim.U/sim.L
-                verbose && println("Writing stats")
-                write!(fname_output*"_D$D", meanflow; dir=datadir)
-            end
+        sim_info(sim)
+
+        WaterLily.update!(meanflow, sim.flow)
+        push!(force, WaterLily.total_force(sim))
+        push!(probe, view(sim.flow.u,probe_loc_i...,2) |> Array |> x->x[])
+        push!(t, sim_time(sim))
+
+        if WaterLily.sim_time(sim) > next_save || sim_time(sim) > time_max
+            save_sim(sim, meanflow, force, probe, t)
+            next_save = sim_time(sim) + save_interval
+            println("Saved simulation and mean flow statistics.")
         end
     end
-    verbose && println("Writing force and probe values")
-    jldsave(datadir*"force_D$D.jld2"; force=force, u_probe=u_probe, time=time)
-    verbose && println("Writing stats")
-    write!(fname_output*"_D$D", meanflow; dir=datadir)
-    wr = vtkWriter("flow_D$D"; dir=datadir)
-    WaterLily.write!(wr, sim)
-    close(wr)
-    println("Done!")
-    return sim, meanflow, force
+    return sim, meanflow, mapreduce(permutedims, vcat, force), probe, t
 end
 
-backend = CuArray
-T = Float32
-Re = 3700
-stats = true
-stats_turb = false
-time_max = 400.0 # in CTU
-stats_init = 100.0 # in CTU
-stats_interval = 0.1 # in CTU
-dump_interval = 5000 # in CTU
-Ds = [88,128,168] # diameter resolution
-L = (7,3,3) # domain size in D # (7,3,3)
-center = SA[1.5,1.5,1.5]
-u_probe_loc = (4.5,2.1,1.5) # in D
-u_probe_component = 2
-datadir = "data/sphere/"
-pdf_file = "../../tex/img/sphere_validation.pdf"
-fname_output = "meanflow"
-verbose = true
-run = false # false: postproc, true: run cases
-_plot = true
+function run_sphere(D; Re=3700, U=1, L=(7,3,3), center=(1.5,1.5,1.5), mem=CuArray, T=Float32,
+    restart=nothing, restart_stats=nothing, restart_signals=nothing, load_time=nothing)
+    if isnothing(load_time)
+        mkpath(data_dir)
+        return run_sim(D; Re, U, L, center, mem, T, restart, restart_stats, restart_signals)
+    else
+        t_str = @sprintf("%i", load_time)
+        sim = sphere(D; Re, U, L, center, mem, T)
+        fname = "$(fname_save)_t$(t_str).jld2"
+        load!(sim; fname)
+        println("Loaded: $fname")
+
+        # meanflow = MeanFlow(sim.flow; uu_stats=true)
+        meanflow = MeanFlow(L.*D; uu_stats=false)
+        fname = "$(fname_save)_t$(t_str)_meanflow.jld2"
+        load!(meanflow; fname)
+        println("Loaded: $fname")
+
+        fname = "$(fname_save)_t$(t_str)_signals.jld2"
+        force, probe, t = read_forces(fname)
+        println("Loaded: $fname")
+
+        return sim, meanflow, mapreduce(permutedims, vcat, force), probe, t
+    end
+end
 
 function main()
-    run && mkpath(datadir)
-    p_cd = plot()
-    for D in Ds
-        println("Running D = $D")
-        if run
-            _, _, force = run_sim(D, backend; L, center, u_probe_loc, u_probe_component, Re, T)
-        end
-        # postproc forces
-        force, u_probe, t = read_forces("force_D$D.jld2"; dir=datadir)
-        force = mapreduce(permutedims, vcat, force)
-        fx, fy, fz = force[:,1], force[:,2], force[:,3]
-        idx = t .> stats_init
-        fx, fy, fz, u, t = fx[idx], fy[idx], fz[idx], u_probe[idx], t[idx]
-        CD_mean = sum(fx[2:end].*diff(t))/sum(diff(t))
-        println("▷ ΔT [CTU] = "*@sprintf("%.4f", t[end]-t[1]))
-        println("▷ CD_mean = "*@sprintf("%.4f", CD_mean))
-        if _plot
-            scatter!(p_cd, [D], [-CD_mean], grid=true, ms=10, ma=1, ylims=(0.25,0.4501), xlims=(80,176), xticks=Ds,
-                xlabel=L"$D$", lw=0, framestyle=:box, size=(600, 600), legend=:bottomright, color=:black,
-                legendfontsize=14, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
-                ylabel=L"$\overline{C_D}$", label=D==168 ? "Present" : ""
-            )
-            # cd_plot = plot(t, -fx, linewidth=2, label=@sprintf("%.1f", prod(L.*D)/1e6)*" M")
-            # plot!(cd_plot, xlabel=L"$tU/D$", ylabel=L"$C_D$", framestyle=:box, grid=true, size=(600, 600), ylims=(0.20, 0.40), xlims=(t[1], t[end]))
-            # savefig(cd_plot, string(@__DIR__) * "../../tex/img/sphere_D$(D)_CD.pdf")
-        end
+    if run_flag
+        println("Running: D=$(D), L=$(L), datadir=$data_dir")
+        sim, meanflow, force, _, t = run_sphere(D; Re, U, L, center, mem, T, restart, restart_stats, restart_signals, load_time)
+        println("▷ ΔT [CTU] = "*@sprintf("%.2f", WaterLily.time(meanflow)/sim.L*sim.U))
+        println("▷ L/D = "*@sprintf("%.2f", recirculation_length(meanflow.U|>Array; Cu=center[1])))
+        println("▷ CD_mean = "*@sprintf("%.2f", -sum(force[2:end,1].*diff(t))/sum(diff(t))/(0.5*U^2*π*(D/2)^2)))
     end
-    hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")
-    hline!(p_cd, [0.355], linestyle=:dashdot, color=:green, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
-    fig_path = joinpath(string(@__DIR__), pdf_file)
-    println("Figure stored in $(fig_path)")
-    savefig(fig_path)
+    if plot_flag
+        p_cd = plot()
+        for d in Ds
+            force, _, t = read_forces(joinpath(data_dir,"D$(d)_Lc3") * "_t400_signals.jld2")
+            CD_mean = -sum(force[2:end,1].*diff(t))/sum(diff(t))/(0.5*U^2*π*(d/2)^2)
+            scatter!(p_cd, [d], [CD_mean], label=d==168 ? label=L"$\mathrm{Present}, 7D\times3D\times3D$" : "", color=:grey, ms=6, msc=:grey)
+        end
+        force, _, t = read_forces(joinpath(data_dir,"D88_Lc6") * "_t400_signals.jld2")
+        CD_mean = -sum(force[2:end,1].*diff(t))/sum(diff(t))/(0.5*U^2*π*(88/2)^2)
+        scatter!(p_cd, [88], [CD_mean], label=L"$\mathrm{Present}, 7D\times6D\times6D$", color=:black, ms=6, ma=1)
+        scatter!(p_cd, grid=true, ms=6, ma=1, ylims=(0.28,0.5001), xlims=(80,176), xticks=Ds, xlabel=L"$D$",
+            lw=0, framestyle=:box, size=(600, 600), legend=:bottomright, color=:black, ylabel=L"$\overline{C_D}$",
+            legendfontsize=14, tickfontsize=18, labelfontsize=18, left_margin=Plots.Measures.Length(:mm, 5),
+        )
+
+        hline!(p_cd, [0.394], linestyle=:dash, color=:blue, label=L"\mathrm{Rodriguez}\,\,et\,\,al\mathrm{.\,\,(DNS)}")
+        hline!(p_cd, [0.355], linestyle=:dashdot, color=:green, label=L"\mathrm{Yun}\,\,et\,\,al\mathrm{.\,\,(LES)}")
+        fig_path = joinpath(string(@__DIR__), pdf_file)
+        println("Figure stored in $(fig_path)")
+        savefig(fig_path)
+    end
 end
 
 main()

@@ -11,3 +11,4 @@ jl/profiling/plots*
 jl/benchmark/plots*
 rev/
 arxiv/
+cpc_tex*

@@ -11,4 +11,8 @@
 
 export JULIA_DEPOT_PATH="$HOME/.julia-acc"
 
-julia --project sphere.jl
+julia --proj sphere.jl --D=88
+julia --proj sphere.jl --D=88 --Lc=6
+julia --proj sphere.jl --D=128
+julia --proj sphere.jl --D=168
+julia --proj sphere.jl --run=false --plot=true
