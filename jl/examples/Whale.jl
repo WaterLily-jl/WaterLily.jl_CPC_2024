@@ -1,6 +1,5 @@
-using CUDA, WaterLily, StaticArrays
+using CUDA, WaterLily, StaticArrays,ParametricBodies
 CUDA.allowscalar(false)
-include("PlanarBodies.jl")
 include("ThreeD_plots.jl")
 function mirrorto!(a,b)
     n = size(b,2)
@@ -19,7 +18,7 @@ function whale(s=10;L=24,U=1,Re=1e4,T=Float32,mem=CuArray)
         Ry = SA[cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
         Ry*100*(x/L-SA[0.75,0,h])
     end
-    body=PlanarParametricBody(planform,(0,1);map,mem)
+    body=PlanarBody(planform,(0,1);map)
     Simulation((5L,3L,2L),(1.,0.,0.),L;U,ν=U*L/Re,body,T,mem)
 end
 
@@ -48,7 +47,7 @@ begin
 end
 
 # simulate real-time
-for frame ∈ 5:6
+for frame ∈ 1:6
     println(frame)
     sim_step!(sim,sim_time(sim)+1);
     geom[] = geom!(md,d,sim);
